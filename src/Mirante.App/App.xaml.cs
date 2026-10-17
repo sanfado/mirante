@@ -113,6 +113,10 @@ public partial class App : Application
         }
 
         _ = DevTools.UpdateSelfTest.RunAsync(updates);
+        if (DevTools.StatusReport.TryParse(e.Args, out var statusFile))
+        {
+            _ = DevTools.StatusReport.RunAsync(_viewModel, statusFile);
+        }
 #endif
         _instance.ListenForActivation(() => Dispatcher.BeginInvoke(window.BringToFront));
     }

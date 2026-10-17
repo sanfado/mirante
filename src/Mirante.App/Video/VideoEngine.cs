@@ -9,15 +9,33 @@ internal sealed class VideoEngine : IDisposable
     public VideoEngine()
     {
         LibVLCSharp.Shared.Core.Initialize();
-        LibVlc = new LibVLC(
-            enableDebugLogs: false,
+        string[] options =
+        [
             "--ignore-config",        // don't read a vlcrc the user may have from VLC itself
             "--keystore=memory",      // never persist credentials to disk
             "--no-video-title-show",
             "--no-osd",
             "--no-spu",
             "--no-snapshot-preview",
-            "--quiet");
+        ];
+#if DEBUG
+        // Debug only: MIRANTE_VLC_LOG=<file> writes LibVLC's own log (never in release builds:
+        // it can include URLs and device details).
+        if (Environment.GetEnvironmentVariable("MIRANTE_VLC_LOG") is { Length: > 0 } logFile)
+        {
+            LibVlc = new LibVLC(enableDebugLogs: true, [.. options, "--verbose=2"]);
+            var gate = new object();
+            LibVlc.Log += (_, e) =>
+            {
+                lock (gate)
+                {
+                    File.AppendAllText(logFile, $"[{e.Level}] {e.Module}: {e.Message}{Environment.NewLine}");
+                }
+            };
+            return;
+        }
+#endif
+        LibVlc = new LibVLC(enableDebugLogs: false, [.. options, "--quiet"]);
     }
 
     public LibVLC LibVlc { get; }

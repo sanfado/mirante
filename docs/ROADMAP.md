@@ -19,13 +19,14 @@
 - [x] Ícone na bandeja (“manter na bandeja ao fechar”) e iniciar com o Windows
 - [x] Atualização automática: baixa em segundo plano, instala só com clique (testado de 0.1.0 a 0.1.3 com feed local)
 - [x] Workflow de release por tag (instalador + delta + GitHub Releases)
+- [x] VLC enxuto: só os plugins usados (101 → 26 MB), sem componentes GPL desnecessários
 - [ ] Atualização pelo GitHub funcionando para os usuários (depende do repositório público)
 
 ## Próximas versões (propostas, a conversar)
 
 - **0.2 — Conforto:** layouts salvos (ex.: “Noite”, “Garagem grande”); reordenar câmeras
   arrastando.
-- **0.3 — Áudio e PTZ:** ligar áudio por câmera; girar a câmera (ONVIF) quando suportado.
+- **0.3 — Áudio e PTZ:** ligar áudio por câmera (exige incluir plugins de áudio do VLC); girar a câmera (ONVIF) quando suportado.
 - **0.4 — Gravação local:** gravação manual e contínua com limite de espaço e apagamento
   automático; linha do tempo para rever.
 - **0.5 — Eventos:** detecção de movimento com aviso do Windows e gravação por evento.
@@ -34,8 +35,7 @@
 
 ## A decidir antes de seguir
 
-1. **Licença** quando abrir o código (MIT, Apache-2.0 ou GPL-3.0). A LGPL do LibVLC é
-   compatível com todas.
+1. ~~Licença~~ → **MIT** (decidido em 2026-10-17), com `THIRD-PARTY-NOTICES.md`.
 2. **Assinatura de código** (certificado pago ou Azure Trusted Signing) — o instalador já é
    Velopack; sem assinatura o Windows mostra “editor desconhecido” na instalação.
 3. **Descoberta automática** de câmeras na rede (ONVIF WS-Discovery) ou só cadastro manual.

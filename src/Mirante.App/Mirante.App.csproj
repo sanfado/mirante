@@ -20,10 +20,32 @@
     <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Menos superfície de ataque: sem scripts/interpretador Lua nem áudio 3D, que o app não usa. -->
+  <!--
+    Só os plugins do VLC que o Mirante usa (lista de permitidos, ~330 → ~60):
+    RTSP + decodificação H.264/H.265/MJPEG na GPU + saída de vídeo + foto.
+    Fica de fora: áudio, codificadores (ex.: x264, GPL), DVD/Blu-ray, legendas, streaming de saída,
+    cofre de senhas em arquivo, Lua etc. Menos superfície de ataque, menor instalador e nenhum
+    componente GPL desnecessário. Ao ligar um recurso novo (ex.: áudio), acrescente aqui.
+  -->
+  <!-- Diagnóstico: dotnet build -p:MiranteFullVlc=true inclui todos os plugins, para comparar. -->
+  <ItemGroup Condition="'$(MiranteFullVlc)' == 'true'">
     <VlcWindowsX64IncludeFiles Include="libvlc.dll;libvlccore.dll;plugins\%2A%2A" />
-    <VlcWindowsX64ExcludeFiles Include="plugins\lua\%2A%2A" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MiranteFullVlc)' != 'true'">
+    <VlcWindowsX64IncludeFiles Include="libvlc.dll;libvlccore.dll" />
+    <!-- Entrada: RTSP (live555) e arquivos locais (modo demonstração) -->
+    <VlcWindowsX64IncludeFiles Include="plugins\access\liblive555_plugin.dll;plugins\access\libfilesystem_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\demux\libmp4_plugin.dll;plugins\demux\libes_plugin.dll;plugins\demux\libh26x_plugin.dll;plugins\demux\libts_plugin.dll;plugins\demux\libmjpeg_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\packetizer\libpacketizer_h264_plugin.dll;plugins\packetizer\libpacketizer_hevc_plugin.dll;plugins\packetizer\libpacketizer_copy_plugin.dll;plugins\packetizer\libpacketizer_mpeg4video_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\stream_filter\libcache_read_plugin.dll;plugins\stream_filter\libcache_block_plugin.dll;plugins\stream_filter\libprefetch_plugin.dll" />
+    <!-- Decodificação (FFmpeg + aceleração D3D11/DXVA2) e imagens (foto em PNG) -->
+    <VlcWindowsX64IncludeFiles Include="plugins\codec\libavcodec_plugin.dll;plugins\codec\libd3d11va_plugin.dll;plugins\codec\libdxva2_plugin.dll;plugins\codec\libpng_plugin.dll;plugins\codec\libjpeg_plugin.dll;plugins\codec\librawvideo_plugin.dll" />
+    <!-- Saída de vídeo dentro da janela do app -->
+    <VlcWindowsX64IncludeFiles Include="plugins\video_output\libdirect3d11_plugin.dll;plugins\video_output\libdirect3d9_plugin.dll;plugins\video_output\libdrawable_plugin.dll;plugins\video_output\libwingdi_plugin.dll;plugins\video_output\libvdummy_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\video_chroma\%2A;plugins\d3d11\%2A;plugins\d3d9\%2A" />
+    <VlcWindowsX64IncludeFiles Include="plugins\video_filter\libdeinterlace_plugin.dll;plugins\video_filter\libscale_plugin.dll;plugins\video_filter\libtransform_plugin.dll" />
+    <!-- Cofre de senhas só em memória (opção keystore=memory) -->
+    <VlcWindowsX64IncludeFiles Include="plugins\keystore\libmemory_keystore_plugin.dll" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,6 +64,12 @@
   <ItemGroup>
     <!-- Projetos WPF não importam System.IO por padrão. -->
     <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Licença e avisos de terceiros vão junto com o app instalado. -->
+    <None Include="..\..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

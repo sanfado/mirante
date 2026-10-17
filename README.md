@@ -46,7 +46,7 @@ Releases, de onde os apps instalados se atualizam.
 
 - Senhas ficam no **Gerenciador de Credenciais do Windows** (DPAPI), nunca em arquivos do app.
 - O endereço RTSP é montado **sem credenciais**; usuário e senha vão ao motor de vídeo por opções separadas e nunca aparecem em logs.
-- LibVLC roda com `--ignore-config` e `--keystore=memory`: não lê configurações do VLC instalado nem grava senhas em disco. Scripts e interpretador Lua do VLC não são distribuídos.
+- LibVLC roda com `--ignore-config` e `--keystore=memory`: não lê configurações do VLC instalado nem grava senhas em disco. Do VLC vão só os ~50 plugins que o app usa (RTSP, decodificação, vídeo, foto): nada de Lua, áudio, codificadores, DVD, legendas ou streaming de saída.
 - Configuração validada ao carregar (um arquivo adulterado não injeta URLs arbitrárias); gravação atômica.
 - Sem servidores, portas abertas, contas ou telemetria. O app conversa com as câmeras que você cadastrou e, se a opção estiver ligada (padrão), com o GitHub para procurar versões novas do próprio Mirante. Nenhum dado seu é enviado.
 - Ao desinstalar, as senhas das câmeras são apagadas do Gerenciador de Credenciais e a inicialização com o Windows é removida.
@@ -96,4 +96,5 @@ Decisão de stack: [docs/adr/0001-stack.md](docs/adr/0001-stack.md).
 
 ## Licença
 
-Ainda não definida (repositório privado). A decisão faz parte do roadmap antes de abrir o código.
+[MIT](LICENSE) © 2026 Sanfado. O instalador inclui componentes de terceiros sob as próprias
+licenças (LibVLC/FFmpeg em LGPL, WPF-UI, Velopack etc.): veja [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

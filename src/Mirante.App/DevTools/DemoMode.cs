@@ -34,6 +34,7 @@ internal static class DemoMode
         string videos, Video.VideoEngine engine)
     {
         var data = Directory.CreateTempSubdirectory("mirante-demo-").FullName;
+
         var clips = Directory.GetFiles(videos, "*.mp4").Order().ToArray();
         var credentials = new InMemoryCredentialStore();
         var configs = clips.Select((_, i) => CameraConfig.CreateNew(Names[i % Names.Length], $"192.168.1.{100 + i}")).ToList();
@@ -54,6 +55,8 @@ internal static class DemoMode
         Directory.CreateDirectory(output);
         await Task.Delay(7000);
         Capture(window, output, "01-mosaico");
+        File.WriteAllLines(Path.Combine(output, "00-status-e-fotos.txt"), StatusReport.Describe(viewModel, output));
+
         if (viewModel.Tiles.Count == 0)
         {
             Application.Current.Shutdown();
