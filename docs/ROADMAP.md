@@ -26,7 +26,7 @@
 
 - **0.2 — Conforto:** layouts salvos (ex.: “Noite”, “Garagem grande”); reordenar câmeras
   arrastando.
-- **0.3 — Áudio e PTZ:** ligar áudio por câmera (exige incluir plugins de áudio do VLC); girar a câmera (ONVIF) quando suportado.
+- **0.3 — PTZ:** (áudio por câmera já feito: uma por vez, com volume); girar a câmera (ONVIF) quando suportado.
 - **0.4 — Gravação local:** gravação manual e contínua com limite de espaço e apagamento
   automático; linha do tempo para rever.
 - **0.5 — Eventos:** detecção de movimento com aviso do Windows e gravação por evento.

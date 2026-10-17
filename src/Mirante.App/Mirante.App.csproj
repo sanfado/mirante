@@ -22,10 +22,10 @@
 
   <!--
     Só os plugins do VLC que o Mirante usa (lista de permitidos, ~330 → ~60):
-    RTSP + decodificação H.264/H.265/MJPEG na GPU + saída de vídeo + foto.
-    Fica de fora: áudio, codificadores (ex.: x264, GPL), DVD/Blu-ray, legendas, streaming de saída,
-    cofre de senhas em arquivo, Lua etc. Menos superfície de ataque, menor instalador e nenhum
-    componente GPL desnecessário. Ao ligar um recurso novo (ex.: áudio), acrescente aqui.
+    RTSP + decodificação H.264/H.265/MJPEG na GPU + áudio da câmera + saída de vídeo + foto.
+    Fica de fora: codificadores (ex.: x264, GPL), DVD/Blu-ray, legendas, efeitos de áudio,
+    streaming de saída, cofre de senhas em arquivo, Lua etc. Menos superfície de ataque, menor
+    instalador e nenhum componente GPL desnecessário. Ao ligar um recurso novo, acrescente aqui.
   -->
   <!-- Diagnóstico: dotnet build -p:MiranteFullVlc=true inclui todos os plugins, para comparar. -->
   <ItemGroup Condition="'$(MiranteFullVlc)' == 'true'">
@@ -44,6 +44,12 @@
     <VlcWindowsX64IncludeFiles Include="plugins\video_output\libdirect3d11_plugin.dll;plugins\video_output\libdirect3d9_plugin.dll;plugins\video_output\libdrawable_plugin.dll;plugins\video_output\libwingdi_plugin.dll;plugins\video_output\libvdummy_plugin.dll" />
     <VlcWindowsX64IncludeFiles Include="plugins\video_chroma\%2A;plugins\d3d11\%2A;plugins\d3d9\%2A" />
     <VlcWindowsX64IncludeFiles Include="plugins\video_filter\libdeinterlace_plugin.dll;plugins\video_filter\libscale_plugin.dll;plugins\video_filter\libtransform_plugin.dll" />
+    <!-- Áudio da câmera (G.711/AAC/PCM), mixagem, conversão e saída pelo Windows -->
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_output\libmmdevice_plugin.dll;plugins\audio_output\libwasapi_plugin.dll;plugins\audio_output\libdirectsound_plugin.dll;plugins\audio_output\libwaveout_plugin.dll;plugins\audio_output\libadummy_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_mixer\%2A" />
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_filter\libaudio_format_plugin.dll;plugins\audio_filter\libspeex_resampler_plugin.dll;plugins\audio_filter\libugly_resampler_plugin.dll;plugins\audio_filter\libtrivial_channel_mixer_plugin.dll;plugins\audio_filter\libsimple_channel_mixer_plugin.dll;plugins\audio_filter\libremap_plugin.dll;plugins\audio_filter\libscaletempo_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\codec\libg711_plugin.dll;plugins\codec\libaraw_plugin.dll;plugins\codec\liblpcm_plugin.dll;plugins\codec\libadpcm_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\packetizer\libpacketizer_mpeg4audio_plugin.dll;plugins\packetizer\libpacketizer_mpegaudio_plugin.dll" />
     <!-- Cofre de senhas só em memória (opção keystore=memory) -->
     <VlcWindowsX64IncludeFiles Include="plugins\keystore\libmemory_keystore_plugin.dll" />
   </ItemGroup>

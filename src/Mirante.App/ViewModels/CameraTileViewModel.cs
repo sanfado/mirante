@@ -44,6 +44,10 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     public bool IsFocused => ReferenceEquals(_owner.FocusedTile, this);
 
+    public bool IsAudioOn => ReferenceEquals(_owner.AudioTile, this);
+
+    public void RefreshAudio() => OnPropertyChanged(nameof(IsAudioOn));
+
     public StreamStatus Status => Stream.Status;
 
     public string StatusLabel => Status switch
@@ -124,6 +128,9 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     [RelayCommand]
     private void Retry() => Stream.Retry();
+
+    [RelayCommand]
+    private void ToggleAudio() => _owner.ToggleAudio(this);
 
     private void OnStreamChanged(object? sender, PropertyChangedEventArgs e)
     {

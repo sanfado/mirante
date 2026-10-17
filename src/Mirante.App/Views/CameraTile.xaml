@@ -72,6 +72,11 @@
                                      Fill="{Binding Tone, Converter={StaticResource ToneToBrush}}" />
                             <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Foreground="#E6FFFFFF"
                                        FontSize="10.5" FontWeight="SemiBold" Text="{Binding StatusLabel}" />
+                            <!-- Som ligado nesta câmera -->
+                            <TextBlock x:Name="AudioGlyph" Margin="8,0,0,0" VerticalAlignment="Center"
+                                       FontFamily="{StaticResource FluentSystemIcons}" FontSize="13" Foreground="#FFB4C6FF"
+                                       ToolTip="Som ligado"
+                                       Visibility="{Binding IsAudioOn, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
                     </Border>
                 </DockPanel>
@@ -80,6 +85,9 @@
                 <Border x:Name="Actions" Margin="10" Padding="4" HorizontalAlignment="Right" VerticalAlignment="Top"
                         CornerRadius="21" Background="{StaticResource OverlayChrome}" Opacity="0">
                     <StackPanel Orientation="Horizontal">
+                        <ui:Button x:Name="AudioButton" Style="{StaticResource OverlayIconButton}"
+                                   Icon="{ui:SymbolIcon SpeakerMute24}" ToolTip="Ligar o som (M)"
+                                   Command="{Binding ToggleAudioCommand}" />
                         <ui:Button Style="{StaticResource OverlayIconButton}" Icon="{ui:SymbolIcon Camera24}"
                                    ToolTip="Tirar foto (F)" Command="{Binding SnapshotCommand}" />
                         <ui:Button x:Name="DetachButton" Style="{StaticResource OverlayIconButton}"

@@ -48,6 +48,14 @@ internal sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private CameraTileViewModel? _focusedTile;
 
+    /// <summary>The only camera whose sound plays (null = all muted).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAudioTile))]
+    private CameraTileViewModel? _audioTile;
+
+    [ObservableProperty]
+    private int _volume = AppSettings.DefaultVolume;
+
     public MainViewModel(CameraRepository cameras, ICredentialStore credentials, VideoEngine engine,
         Func<string> snapshotFolder, Dispatcher dispatcher)
     {
@@ -74,6 +82,26 @@ internal sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<CameraTileViewModel> DetachedTiles { get; } = [];
 
     public bool HasCameras => Tiles.Count > 0;
+
+    public bool HasAudioTile => AudioTile is not null;
+
+    /// <summary>Turns this camera's sound on (muting any other) or off.</summary>
+    public void ToggleAudio(CameraTileViewModel tile) =>
+        AudioTile = ReferenceEquals(AudioTile, tile) ? null : tile;
+
+    partial void OnAudioTileChanged(CameraTileViewModel? value)
+    {
+        foreach (var tile in Tiles)
+        {
+            tile.Stream.SetAudio(ReferenceEquals(tile, value), Volume);
+            tile.RefreshAudio();
+        }
+    }
+
+    partial void OnVolumeChanged(int value) => AudioTile?.Stream.SetAudio(true, value);
+
+    [RelayCommand]
+    private void MuteAll() => AudioTile = null;
 
     public bool AllDetached => Tiles.Count > 0 && Tiles.All(t => t.IsDetached);
 
@@ -142,6 +170,11 @@ internal sealed partial class MainViewModel : ObservableObject
         if (ReferenceEquals(FocusedTile, tile))
         {
             FocusedTile = null;
+        }
+
+        if (ReferenceEquals(AudioTile, tile))
+        {
+            AudioTile = null;
         }
 
         Tiles.Remove(tile);

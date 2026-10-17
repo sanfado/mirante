@@ -45,6 +45,8 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     private DateTime _lastProgress;
     private DateTime _startedAt;
     private int _attempt;
+    private bool _audioOn;
+    private int _volume = 80;
     private bool _paused;
     private bool _disposed;
 
@@ -116,6 +118,28 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     {
         _attempt = 0;
         _ = RestartAsync();
+    }
+
+    /// <summary>
+    /// Every camera starts muted (the player is created muted); only the one the user picks plays,
+    /// at <paramref name="volume"/> (0–100). Re-applied whenever the video (re)starts.
+    /// </summary>
+    public void SetAudio(bool on, int volume)
+    {
+        _audioOn = on;
+        _volume = Math.Clamp(volume, 0, 100);
+        ApplyAudio();
+    }
+
+    private void ApplyAudio()
+    {
+        var mute = !_audioOn;
+        var volume = _volume;
+        _ = Task.Run(() =>
+        {
+            Player.Mute = mute;
+            Player.Volume = volume;
+        });
     }
 
     /// <summary>Stops decoding while the app sits in the tray; <see cref="Resume"/> restarts it.</summary>
@@ -272,6 +296,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
                 Status = StreamStatus.Live;
                 _attempt = 0;
                 _lastProgress = DateTime.UtcNow;
+                ApplyAudio();
             });
         }
     }

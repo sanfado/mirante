@@ -17,6 +17,9 @@ internal sealed class VideoEngine : IDisposable
             "--no-osd",
             "--no-spu",
             "--no-snapshot-preview",
+            // DirectSound gives each camera its own mute/volume. The default (WASAPI via mmdevice)
+            // shares one audio session per process, so muting one camera muted all of them.
+            "--aout=directsound,any",
         ];
 #if DEBUG
         // Debug only: MIRANTE_VLC_LOG=<file> writes LibVLC's own log (never in release builds:
@@ -48,7 +51,6 @@ internal sealed class VideoEngine : IDisposable
         new(LibVlc, uri,
             ":rtsp-tcp",
             ":network-caching=400",
-            ":no-audio",
             $":rtsp-user={credential.UserName}",
             $":rtsp-pwd={credential.Password}");
 

@@ -65,6 +65,25 @@
                     <ui:Button x:Name="UpdateButton" Style="{StaticResource TitleBarButton}" Appearance="Secondary"
                                Margin="0,0,8,0" Visibility="Collapsed" Icon="{ui:SymbolIcon ArrowDownload24}"
                                ToolTip="Reinicia o Mirante já na versão nova" Click="OnUpdateClick" />
+                    <!-- Som: aparece enquanto alguma câmera estiver com o som ligado -->
+                    <Border Margin="0,0,8,0" Padding="2,0,12,0" Height="32" CornerRadius="16" VerticalAlignment="Center"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                            Visibility="{Binding HasAudioTile, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:Button Style="{StaticResource TitleBarButton}" Height="28" Padding="8,0" Margin="0"
+                                       Icon="{ui:SymbolIcon Speaker224}" ToolTip="Desligar o som"
+                                       Command="{Binding MuteAllCommand}" />
+                            <TextBlock Margin="2,0,10,0" VerticalAlignment="Center" FontSize="12.5"
+                                       Text="{Binding AudioTile.Name}" />
+                            <Slider x:Name="VolumeSlider" Width="110" VerticalAlignment="Center" ToolTip="Volume"
+                                    Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    SmallChange="5" LargeChange="10" IsMoveToPointEnabled="True"
+                                    Value="{Binding Volume, Mode=TwoWay}" />
+                            <TextBlock Width="26" Margin="6,0,0,0" VerticalAlignment="Center" TextAlignment="Right"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="{Binding Volume}" />
+                        </StackPanel>
+                    </Border>
                     <!-- Câmeras abertas em janelas separadas: clique para trazer de volta -->
                     <ItemsControl ItemsSource="{Binding DetachedTiles}" VerticalAlignment="Center">
                         <ItemsControl.ItemsPanel>

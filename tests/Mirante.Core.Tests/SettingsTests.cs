@@ -42,5 +42,6 @@ public sealed class SettingsTests : IDisposable
         Assert.Empty(loaded.DetachedWindows);
         Assert.False(loaded.KeepInTray);
         Assert.False(loaded.DisableUpdateChecks); // update checks stay on for existing users
+        Assert.Null(loaded.Volume); // the app applies AppSettings.DefaultVolume, not 0 (silence)
     }
 }

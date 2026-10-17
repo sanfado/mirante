@@ -40,6 +40,9 @@ internal sealed partial class DetachedCameraWindow : FluentWindow, IShortcutHost
             case Key.Escape when _fullscreen.IsActive:
                 _fullscreen.Exit();
                 return true;
+            case Key.M when DataContext is CameraTileViewModel tile:
+                tile.ToggleAudioCommand.Execute(null);
+                return true;
             default:
                 return false;
         }

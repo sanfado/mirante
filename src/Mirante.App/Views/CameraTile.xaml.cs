@@ -88,6 +88,7 @@ internal sealed partial class CameraTile : UserControl
         {
             _tile.PropertyChanged += OnTileChanged;
             ProblemGlyph.Text = char.ConvertFromUtf32((int)_tile.ProblemIcon);
+            ShowAudioState();
         }
 
         UpdateAttachment();
@@ -103,6 +104,19 @@ internal sealed partial class CameraTile : UserControl
         {
             ProblemGlyph.Text = char.ConvertFromUtf32((int)_tile.ProblemIcon);
         }
+        else if (e.PropertyName == nameof(CameraTileViewModel.IsAudioOn))
+        {
+            ShowAudioState();
+        }
+    }
+
+    private void ShowAudioState()
+    {
+        var on = _tile?.IsAudioOn == true;
+        AudioButton.Icon = new Wpf.Ui.Controls.SymbolIcon(
+            on ? Wpf.Ui.Controls.SymbolRegular.Speaker224 : Wpf.Ui.Controls.SymbolRegular.SpeakerMute24);
+        AudioButton.ToolTip = on ? "Desligar o som (M)" : "Ligar o som (M)";
+        AudioGlyph.Text = char.ConvertFromUtf32((int)Wpf.Ui.Controls.SymbolRegular.Speaker224);
     }
 
     /// <summary>The mosaic tile shows video unless the camera is detached; the detached window does the opposite.</summary>
@@ -147,6 +161,13 @@ internal sealed partial class CameraTile : UserControl
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.None && _tile is not null)
             {
                 _tile.SnapshotCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.M && Keyboard.Modifiers == ModifierKeys.None && _tile is not null)
+            {
+                _tile.ToggleAudioCommand.Execute(null);
                 e.Handled = true;
                 return;
             }

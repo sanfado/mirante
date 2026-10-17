@@ -46,7 +46,7 @@ internal static class DemoMode
         var cameras = new CameraRepository(Path.Combine(data, "cameras.json"));
         cameras.Save(configs);
         engine.DemoMedia = config => new Media(engine.LibVlc, new Uri(clips[configs.FindIndex(c => c.Id == config.Id)]),
-            ":input-repeat=65535", ":no-audio");
+            ":input-repeat=65535");
         return (cameras, new SettingsRepository(Path.Combine(data, "settings.json")), credentials);
     }
 
@@ -56,6 +56,40 @@ internal static class DemoMode
         await Task.Delay(7000);
         Capture(window, output, "01-mosaico");
         File.WriteAllLines(Path.Combine(output, "00-status-e-fotos.txt"), StatusReport.Describe(viewModel, output));
+        // Audio: only one camera plays at a time, volume follows the slider. Kept quiet on purpose.
+        var audio = new List<string>();
+        void AudioState(string step)
+        {
+            audio.Add($"-- {step}");
+            foreach (var tile in viewModel.Tiles)
+            {
+                var player = tile.Stream.Player;
+                audio.Add($"   {tile.Name,-8} somLigado={tile.IsAudioOn,-5} mudo={player.Mute,-5} volume={player.Volume,3} " +
+                          $"faixasDeAudio={player.AudioTrackCount} amostrasDecodificadas={player.Media?.Statistics.DecodedAudio ?? 0}");
+            }
+        }
+
+        viewModel.Volume = 5;
+        await Task.Delay(2000);
+        AudioState("início (todas mudas)");
+        viewModel.ToggleAudio(viewModel.Tiles[0]);
+        await Task.Delay(2500);
+        AudioState($"som em {viewModel.Tiles[0].Name}");
+        if (viewModel.Tiles.Count > 1)
+        {
+            viewModel.ToggleAudio(viewModel.Tiles[1]);
+            await Task.Delay(2500);
+            AudioState($"som em {viewModel.Tiles[1].Name} (a anterior deve silenciar)");
+            Capture(window, output, "01b-som-ligado");
+            viewModel.Volume = 3;
+            await Task.Delay(800);
+            AudioState("volume 3");
+            viewModel.ToggleAudio(viewModel.Tiles[1]);
+            await Task.Delay(800);
+            AudioState("som desligado");
+        }
+
+        File.WriteAllLines(Path.Combine(output, "00-audio.txt"), audio);
 
         if (viewModel.Tiles.Count == 0)
         {

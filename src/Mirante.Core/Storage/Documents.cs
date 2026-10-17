@@ -45,6 +45,11 @@ public sealed record AppSettings
     /// missing booleans as false, and update checks should stay on for them.
     /// </summary>
     public bool DisableUpdateChecks { get; init; }
+
+    public const int DefaultVolume = 80;
+
+    /// <summary>Audio volume 0–100. Nullable so files written before it existed get the default, not 0.</summary>
+    public int? Volume { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true,
