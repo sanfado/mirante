@@ -21,13 +21,14 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Height="36" ShowMaximize="False" ShowMinimize="False" />
 
-        <StackPanel Grid.Row="1" Margin="28,0,28,24">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28,0,28,24">
             <TextBlock FontSize="22" FontWeight="SemiBold" Text="Configurações" />
 
             <TextBlock Style="{StaticResource SectionTitle}" Text="Aparência" />
@@ -83,13 +84,42 @@
                 <ui:ToggleSwitch x:Name="TrayToggle" Click="OnTrayToggled" />
             </ui:CardControl>
 
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Atualizações" />
+            <ui:CardControl Icon="{ui:SymbolIcon ArrowSync24}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock FontSize="13.5" Text="Procurar atualizações automaticamente" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="Consulta as versões publicadas do Mirante no GitHub a cada poucas horas e baixa em segundo plano. Nada é instalado sem você clicar." />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                <ui:ToggleSwitch x:Name="UpdatesToggle" Click="OnUpdatesToggled" />
+            </ui:CardControl>
+            <ui:CardControl Margin="0,4,0,0" Icon="{ui:SymbolIcon ArrowDownload24}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock x:Name="UpdateTitle" FontSize="13.5" />
+                        <TextBlock x:Name="UpdateDetail" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                <StackPanel Orientation="Horizontal">
+                    <ui:ProgressRing x:Name="UpdateBusy" Width="18" Height="18" Margin="0,0,10,0"
+                                     IsIndeterminate="True" Visibility="Collapsed" />
+                    <ui:Button x:Name="CheckUpdatesButton" Appearance="Secondary" Content="Procurar agora"
+                               Click="OnCheckUpdatesClick" />
+                    <ui:Button x:Name="ApplyUpdateButton" Margin="8,0,0,0" Appearance="Primary"
+                               Content="Reiniciar e atualizar" Visibility="Collapsed" Click="OnApplyUpdateClick" />
+                </StackPanel>
+            </ui:CardControl>
+
             <TextBlock Style="{StaticResource SectionTitle}" Text="Privacidade e segurança" />
             <ui:CardControl Icon="{ui:SymbolIcon ShieldCheckmark24}">
                 <ui:CardControl.Header>
                     <StackPanel>
                         <TextBlock FontSize="13.5" TextWrapping="Wrap" Text="Tudo fica no seu PC" />
                         <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Text="O Mirante só conversa com as câmeras da sua rede: sem nuvem, sem contas, sem telemetria. As senhas ficam no Gerenciador de Credenciais do Windows." />
+                                   Text="O Mirante conversa com as câmeras da sua rede e, se você deixar, com o GitHub para procurar atualizações. Sem nuvem, sem contas, sem telemetria. As senhas ficam no Gerenciador de Credenciais do Windows." />
                     </StackPanel>
                 </ui:CardControl.Header>
             </ui:CardControl>
@@ -100,6 +130,7 @@
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             </StackPanel>
         </StackPanel>
+        </ScrollViewer>
 
         <Border Grid.Row="2" Padding="28,16" Background="{DynamicResource LayerFillColorAltBrush}"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">

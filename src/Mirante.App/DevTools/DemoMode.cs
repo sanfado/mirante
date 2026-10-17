@@ -91,7 +91,8 @@ internal static class DemoMode
         Capture(editor, output, "06-adicionar-camera");
         editor.Close();
 
-        var settingsWindow = new SettingsWindow(settings, window.UpdateTrayIcon) { Owner = window };
+        var settingsWindow = new SettingsWindow(settings, window.UpdateTrayIcon,
+            new Services.UpdateService(window.Dispatcher), () => { }) { Owner = window };
         settingsWindow.Show();
         await Task.Delay(1200);
         Capture(settingsWindow, output, "07-configuracoes");

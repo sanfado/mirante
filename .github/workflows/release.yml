@@ -1,0 +1,63 @@
+name: Release
+
+# Publica uma versão: crie e envie uma tag "v1.2.3" (ex.: git tag v0.2.0 && git push origin v0.2.0).
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # só este job pode criar o release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Versão a partir da tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Tag inválida: ${{ github.ref_name }}" }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Restore e testes
+        run: |
+          dotnet restore --locked-mode
+          dotnet test --project tests/Mirante.Core.Tests -c Release
+
+      - name: Releases anteriores (para atualizações delta)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet tool restore
+          dotnet vpk download github --repoUrl "https://github.com/${{ github.repository }}" --token "$env:GH_TOKEN" --outputDir artifacts/releases
+          if ($LASTEXITCODE) { Write-Warning 'Nenhum release anterior (primeira publicação?)'; $global:LASTEXITCODE = 0 }
+
+      - name: Instalador
+        shell: pwsh
+        run: ./build/pack.ps1 -Version ${{ steps.version.outputs.value }} -KeepReleases
+
+      - name: Publicar no GitHub Releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet vpk upload github --repoUrl "https://github.com/${{ github.repository }}" --token "$env:GH_TOKEN" `
+            --outputDir artifacts/releases --publish --tag "${{ github.ref_name }}" `
+            --releaseName "Mirante ${{ steps.version.outputs.value }}"

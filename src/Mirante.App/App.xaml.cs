@@ -78,7 +78,8 @@ public partial class App : Application
         _viewModel = new MainViewModel(cameras, credentials, _engine,
             () => snapshotSettings.Load().SnapshotFolder ?? AppPaths.DefaultSnapshotFolder, Dispatcher);
 
-        var window = new MainWindow(_viewModel, settingsRepository);
+        var updates = new UpdateService(Dispatcher);
+        var window = new MainWindow(_viewModel, settingsRepository, updates);
         MainWindow = window;
 
         // Launched by Windows at sign-in and the user chose to keep it in the tray: no window yet.
@@ -94,13 +95,24 @@ public partial class App : Application
 
         if (!isDemo)
         {
-            StartupRegistration.RefreshPath();
+#if !DEBUG
+            // Only an installed copy may (re)point "start with Windows" at itself; a build
+            // folder or a debug test install must never take over the user's real entry.
+            if (updates.IsSupported)
+            {
+                StartupRegistration.RefreshPath();
+            }
+#endif
+            var updateSettings = settingsRepository;
+            updates.StartBackgroundChecks(() => !updateSettings.Load().DisableUpdateChecks);
         }
 #if DEBUG
         if (demo)
         {
             _ = DevTools.DemoMode.RunAsync(window, _viewModel, settingsRepository, demoOutput);
         }
+
+        _ = DevTools.UpdateSelfTest.RunAsync(updates);
 #endif
         _instance.ListenForActivation(() => Dispatcher.BeginInvoke(window.BringToFront));
     }

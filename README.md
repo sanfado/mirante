@@ -25,6 +25,7 @@
 - **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
 - **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
 - **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.
+- **Atualizações sem surpresa**: baixa versões novas em segundo plano e mostra um botão; só instala quando você clica.
 - **Bandeja e inicialização**: pode iniciar com o Windows e ficar perto do relógio sem gastar processamento com vídeo.
 - Decodificação na GPU (via LibVLC), interface Fluent do Windows 11 com tema escuro/claro.
 
@@ -37,13 +38,17 @@ Gere o instalador com `./build/pack.ps1 -Version 0.1.0` e rode `artifacts/releas
 Ele instala só para o seu usuário (sem administrador), em `%LOCALAPPDATA%\Mirante`, cria atalhos e
 instala o .NET Desktop Runtime 10 se faltar. Desinstale por **Configurações do Windows › Apps**.
 
+**Publicar uma versão:** `git tag v0.2.0 && git push origin v0.2.0`. O workflow `Release` testa,
+gera o instalador (com atualização delta a partir das versões anteriores) e publica no GitHub
+Releases, de onde os apps instalados se atualizam.
+
 ## Segurança e privacidade
 
 - Senhas ficam no **Gerenciador de Credenciais do Windows** (DPAPI), nunca em arquivos do app.
 - O endereço RTSP é montado **sem credenciais**; usuário e senha vão ao motor de vídeo por opções separadas e nunca aparecem em logs.
 - LibVLC roda com `--ignore-config` e `--keystore=memory`: não lê configurações do VLC instalado nem grava senhas em disco. Scripts e interpretador Lua do VLC não são distribuídos.
 - Configuração validada ao carregar (um arquivo adulterado não injeta URLs arbitrárias); gravação atômica.
-- Sem servidores, portas abertas, contas ou telemetria. O app só conversa com as câmeras que você cadastrou.
+- Sem servidores, portas abertas, contas ou telemetria. O app conversa com as câmeras que você cadastrou e, se a opção estiver ligada (padrão), com o GitHub para procurar versões novas do próprio Mirante. Nenhum dado seu é enviado.
 - Ao desinstalar, as senhas das câmeras são apagadas do Gerenciador de Credenciais e a inicialização com o Windows é removida.
 - Versões de pacotes travadas (`packages.lock.json`), auditoria de vulnerabilidades do NuGet no build e Dependabot.
 

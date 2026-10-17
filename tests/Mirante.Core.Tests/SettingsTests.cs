@@ -41,5 +41,6 @@ public sealed class SettingsTests : IDisposable
         Assert.False(loaded.MainWindow!.IsFullscreen);
         Assert.Empty(loaded.DetachedWindows);
         Assert.False(loaded.KeepInTray);
+        Assert.False(loaded.DisableUpdateChecks); // update checks stay on for existing users
     }
 }

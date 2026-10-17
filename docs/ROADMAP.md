@@ -17,12 +17,14 @@
 - [x] Ajuste visual: linha escura de poucos pixels no topo do modo foco
 - [x] Lembrar janelas destacadas (monitor, posição, tela cheia) e a tela cheia da janela principal
 - [x] Ícone na bandeja (“manter na bandeja ao fechar”) e iniciar com o Windows
-- [ ] Publicar releases no GitHub e ligar a atualização automática (depende do repositório público)
+- [x] Atualização automática: baixa em segundo plano, instala só com clique (testado de 0.1.0 a 0.1.3 com feed local)
+- [x] Workflow de release por tag (instalador + delta + GitHub Releases)
+- [ ] Atualização pelo GitHub funcionando para os usuários (depende do repositório público)
 
 ## Próximas versões (propostas, a conversar)
 
 - **0.2 — Conforto:** layouts salvos (ex.: “Noite”, “Garagem grande”); reordenar câmeras
-  arrastando; atualização automática pelo próprio app.
+  arrastando.
 - **0.3 — Áudio e PTZ:** ligar áudio por câmera; girar a câmera (ONVIF) quando suportado.
 - **0.4 — Gravação local:** gravação manual e contínua com limite de espaço e apagamento
   automático; linha do tempo para rever.

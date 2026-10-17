@@ -61,6 +61,10 @@
             </ui:TitleBar.CenterContent>
             <ui:TitleBar.TrailingContent>
                 <StackPanel Margin="0,0,8,0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Aparece só quando uma versão nova já foi baixada; nada é instalado sem clique. -->
+                    <ui:Button x:Name="UpdateButton" Style="{StaticResource TitleBarButton}" Appearance="Secondary"
+                               Margin="0,0,8,0" Visibility="Collapsed" Icon="{ui:SymbolIcon ArrowDownload24}"
+                               ToolTip="Reinicia o Mirante já na versão nova" Click="OnUpdateClick" />
                     <!-- Câmeras abertas em janelas separadas: clique para trazer de volta -->
                     <ItemsControl ItemsSource="{Binding DetachedTiles}" VerticalAlignment="Center">
                         <ItemsControl.ItemsPanel>

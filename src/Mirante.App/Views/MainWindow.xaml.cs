@@ -16,6 +16,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 {
     private readonly MainViewModel _viewModel;
     private readonly SettingsRepository _settings;
+    private readonly Services.UpdateService _updates;
     private readonly Fullscreen _fullscreen;
     private readonly Dictionary<CameraTileViewModel, DetachedCameraWindow> _detached = [];
     private readonly Dictionary<Guid, WindowPlacement> _pendingPlacements = [];
@@ -23,11 +24,14 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     private string? _toastFolder;
     private bool _exiting;
 
-    internal MainWindow(MainViewModel viewModel, SettingsRepository settings)
+    internal MainWindow(MainViewModel viewModel, SettingsRepository settings, Services.UpdateService updates)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _settings = settings;
+        _updates = updates;
+        updates.PropertyChanged += (_, _) => ShowUpdateButton();
+        ShowUpdateButton();
         DataContext = viewModel;
         viewModel.Shell = this;
 
@@ -202,7 +206,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
-        new SettingsWindow(_settings, UpdateTrayIcon) { Owner = this }.ShowDialog();
+        new SettingsWindow(_settings, UpdateTrayIcon, _updates, ApplyUpdate) { Owner = this }.ShowDialog();
     }
 
     private void OnToastClick(object sender, MouseButtonEventArgs e)
@@ -264,6 +268,23 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
                 _viewModel.ToggleDetach(tile);
             }
         }
+    }
+
+    // ----- Updates -----
+
+    private void ShowUpdateButton()
+    {
+        UpdateButton.Visibility = _updates.ReadyVersion is null ? Visibility.Collapsed : Visibility.Visible;
+        UpdateButton.Content = $"Atualizar para {_updates.ReadyVersion}";
+    }
+
+    private void OnUpdateClick(object sender, RoutedEventArgs e) => ApplyUpdate();
+
+    /// <summary>Only on the user's click. The app exits right away, so save the layout first.</summary>
+    private void ApplyUpdate()
+    {
+        SaveLayout();
+        _updates.ApplyAndRestart();
     }
 
     // ----- Notification area (tray) -----

@@ -39,6 +39,12 @@ public sealed record AppSettings
 
     /// <summary>Closing the main window hides it in the notification area instead of exiting.</summary>
     public bool KeepInTray { get; init; }
+
+    /// <summary>
+    /// Opt-out (not opt-in) on purpose: settings files written before this existed load
+    /// missing booleans as false, and update checks should stay on for them.
+    /// </summary>
+    public bool DisableUpdateChecks { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true,
