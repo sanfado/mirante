@@ -13,14 +13,16 @@
 - [x] Tema escuro/claro/sistema, posição da janela lembrada
 - [x] Uma instância só (abrir de novo traz a janela existente para frente)
 - [ ] Testar com a câmera real da sala (login, reconexão ao reiniciar a câmera, queda de Wi-Fi)
-- [ ] Instalador (ver “A decidir”)
-- [ ] Ajuste visual: linha escura de poucos pixels no topo do modo foco
+- [x] Instalador local com Velopack (`build/pack.ps1`), sem assinatura de código ainda
+- [x] Ajuste visual: linha escura de poucos pixels no topo do modo foco
+- [x] Lembrar janelas destacadas (monitor, posição, tela cheia) e a tela cheia da janela principal
+- [x] Ícone na bandeja (“manter na bandeja ao fechar”) e iniciar com o Windows
+- [ ] Publicar releases no GitHub e ligar a atualização automática (depende do repositório público)
 
 ## Próximas versões (propostas, a conversar)
 
-- **0.2 — Conforto:** lembrar janelas destacadas e em qual monitor estavam; layouts salvos
-  (ex.: “Noite”, “Garagem grande”); reordenar câmeras arrastando; iniciar com o Windows;
-  ícone na bandeja.
+- **0.2 — Conforto:** layouts salvos (ex.: “Noite”, “Garagem grande”); reordenar câmeras
+  arrastando; atualização automática pelo próprio app.
 - **0.3 — Áudio e PTZ:** ligar áudio por câmera; girar a câmera (ONVIF) quando suportado.
 - **0.4 — Gravação local:** gravação manual e contínua com limite de espaço e apagamento
   automático; linha do tempo para rever.
@@ -32,8 +34,8 @@
 
 1. **Licença** quando abrir o código (MIT, Apache-2.0 ou GPL-3.0). A LGPL do LibVLC é
    compatível com todas.
-2. **Distribuição:** instalador MSIX (Microsoft Store/winget) ou Velopack (atualização
-   automática), e **assinatura de código** (certificado pago ou Azure Trusted Signing).
+2. **Assinatura de código** (certificado pago ou Azure Trusted Signing) — o instalador já é
+   Velopack; sem assinatura o Windows mostra “editor desconhecido” na instalação.
 3. **Descoberta automática** de câmeras na rede (ONVIF WS-Discovery) ou só cadastro manual.
 4. **Gravação:** onde guardar, quanto espaço, formato (MP4 segmentado?), por quanto tempo.
 5. **Acesso fora de casa:** fica fora do escopo (o app Tapo já cobre) ou entra no futuro

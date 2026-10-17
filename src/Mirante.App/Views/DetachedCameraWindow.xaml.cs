@@ -47,6 +47,8 @@ internal sealed partial class DetachedCameraWindow : FluentWindow, IShortcutHost
 
     public void OnTileDoubleClick(CameraTileViewModel tile) => _fullscreen.Toggle();
 
+    internal Fullscreen Fullscreen => _fullscreen;
+
     /// <summary>Replaces the video host with a fresh one (see ThemeService.Changed).</summary>
     public void RecreateVideo()
     {

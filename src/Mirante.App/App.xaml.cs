@@ -80,7 +80,22 @@ public partial class App : Application
 
         var window = new MainWindow(_viewModel, settingsRepository);
         MainWindow = window;
-        window.Show();
+
+        // Launched by Windows at sign-in and the user chose to keep it in the tray: no window yet.
+        var startup = e.Args.Contains(StartupRegistration.StartupArgument);
+        if (startup && settingsRepository.Load().KeepInTray)
+        {
+            window.StartInTray();
+        }
+        else
+        {
+            window.Show();
+        }
+
+        if (!isDemo)
+        {
+            StartupRegistration.RefreshPath();
+        }
 #if DEBUG
         if (demo)
         {

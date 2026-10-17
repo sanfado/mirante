@@ -45,6 +45,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     private DateTime _lastProgress;
     private DateTime _startedAt;
     private int _attempt;
+    private bool _paused;
     private bool _disposed;
 
     [ObservableProperty]
@@ -117,6 +118,25 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
         _ = RestartAsync();
     }
 
+    /// <summary>Stops decoding while the app sits in the tray; <see cref="Resume"/> restarts it.</summary>
+    public void Pause()
+    {
+        _paused = true;
+        CancelRetry();
+        _watchdog.Stop();
+        Status = StreamStatus.Idle;
+        _ = RunPlayerAsync(() => Player.Stop());
+    }
+
+    public void Resume()
+    {
+        if (_paused)
+        {
+            _paused = false;
+            Retry();
+        }
+    }
+
     public bool TakeSnapshot(string path)
     {
         if (!IsLive)
@@ -133,7 +153,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     private async Task RestartAsync()
     {
         CancelRetry();
-        if (_disposed || _view is null)
+        if (_disposed || _paused || _view is null)
         {
             return;
         }
@@ -165,7 +185,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
 
     private void ScheduleReconnect()
     {
-        if (_disposed || _view is null || _retry is not null
+        if (_disposed || _paused || _view is null || _retry is not null
             || Status is StreamStatus.AuthFailed or StreamStatus.MissingCredentials)
         {
             return;

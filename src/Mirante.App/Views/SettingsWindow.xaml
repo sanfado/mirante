@@ -61,6 +61,28 @@
                 </StackPanel>
             </ui:CardControl>
 
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Inicialização" />
+            <ui:CardControl Icon="{ui:SymbolIcon Power24}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock FontSize="13.5" Text="Iniciar com o Windows" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="Abre o Mirante quando você entra no Windows." />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                <ui:ToggleSwitch x:Name="StartupToggle" Click="OnStartupToggled" />
+            </ui:CardControl>
+            <ui:CardControl Margin="0,4,0,0" Icon="{ui:SymbolIcon ArrowMinimize24}">
+                <ui:CardControl.Header>
+                    <StackPanel>
+                        <TextBlock FontSize="13.5" Text="Manter na bandeja ao fechar" />
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="Fechar a janela deixa o Mirante perto do relógio, sem gastar processamento com vídeo. Junto com a opção acima, ele já abre na bandeja." />
+                    </StackPanel>
+                </ui:CardControl.Header>
+                <ui:ToggleSwitch x:Name="TrayToggle" Click="OnTrayToggled" />
+            </ui:CardControl>
+
             <TextBlock Style="{StaticResource SectionTitle}" Text="Privacidade e segurança" />
             <ui:CardControl Icon="{ui:SymbolIcon ShieldCheckmark24}">
                 <ui:CardControl.Header>

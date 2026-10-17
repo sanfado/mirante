@@ -32,7 +32,10 @@ internal static class VideoHostBackground
 
         if (FindChild<HwndHost>(videoView) is { Handle: var hwnd } && hwnd != IntPtr.Zero)
         {
-            _ = NativeMethods.InvalidateRect(hwnd, IntPtr.Zero, true);
+            // Invalidate + erase + paint now, including LibVLC's own child windows: its letterbox
+            // bands belong to "VLC video main", which doesn't repaint area exposed by a resize.
+            // (RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW)
+            _ = NativeMethods.RedrawWindow(hwnd, IntPtr.Zero, IntPtr.Zero, 0x0001 | 0x0004 | 0x0080 | 0x0100);
         }
     }
 
@@ -76,6 +79,6 @@ internal static class VideoHostBackground
         [DllImport("user32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool InvalidateRect(IntPtr hwnd, IntPtr rect, [MarshalAs(UnmanagedType.Bool)] bool erase);
+        public static extern bool RedrawWindow(IntPtr hwnd, IntPtr updateRect, IntPtr updateRegion, uint flags);
     }
 }

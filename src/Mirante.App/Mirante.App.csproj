@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -8,6 +8,8 @@
     <RootNamespace>Mirante.App</RootNamespace>
     <ApplicationIcon>Assets\mirante.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Program.Main (Velopack precisa rodar antes do WPF). -->
+    <StartupObject>Mirante.App.Program</StartupObject>
     <!-- Só 64 bits: o pacote do LibVLC traz x86 e x64; não distribuímos o x86. -->
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
@@ -19,12 +21,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Menos superfície de ataque: sem scripts Lua nem áudio 3D, que o app não usa. -->
+    <!-- Menos superfície de ataque: sem scripts/interpretador Lua nem áudio 3D, que o app não usa. -->
     <VlcWindowsX64IncludeFiles Include="libvlc.dll;libvlccore.dll;plugins\%2A%2A" />
+    <VlcWindowsX64ExcludeFiles Include="plugins\lua\%2A%2A" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="WPF-UI" />
+    <PackageReference Include="WPF-UI.Tray" />
+    <PackageReference Include="Velopack" />
     <PackageReference Include="LibVLCSharp.WPF" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" />
     <PackageReference Include="CommunityToolkit.Mvvm" />

@@ -5,6 +5,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:tray="http://schemas.lepo.co/wpfui/2022/xaml/tray"
                  xmlns:views="clr-namespace:Mirante.App.Views"
                  xmlns:vm="clr-namespace:Mirante.App.ViewModels"
                  mc:Ignorable="d"
@@ -21,6 +22,18 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+
+        <!-- Ícone na área de notificação (só aparece com "Manter na bandeja ao fechar"). -->
+        <tray:NotifyIcon x:Name="TrayIcon" Grid.Row="0" TooltipText="Mirante" Icon="/Assets/mirante-256.png"
+                         FocusOnLeftClick="False" MenuOnRightClick="True">
+            <tray:NotifyIcon.Menu>
+                <ContextMenu>
+                    <MenuItem Header="Abrir o Mirante" Icon="{ui:SymbolIcon Open24}" Click="OnTrayOpenClick" />
+                    <Separator />
+                    <MenuItem Header="Sair" Icon="{ui:SymbolIcon Dismiss24}" Click="OnTrayExitClick" />
+                </ContextMenu>
+            </tray:NotifyIcon.Menu>
+        </tray:NotifyIcon>
 
         <ui:TitleBar x:Name="TitleBar" Grid.Row="0" Height="52">
             <ui:TitleBar.Header>

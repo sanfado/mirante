@@ -209,6 +209,23 @@ internal sealed partial class MainViewModel : ObservableObject
         FocusedTile = number >= 1 && number <= candidates.Count ? candidates[number - 1] : null;
     }
 
+    /// <summary>The app went to the tray: stop decoding until it is shown again.</summary>
+    public void PauseAll()
+    {
+        foreach (var tile in Tiles)
+        {
+            tile.Stream.Pause();
+        }
+    }
+
+    public void ResumeAll()
+    {
+        foreach (var tile in Tiles)
+        {
+            tile.Stream.Resume();
+        }
+    }
+
     public Task ShutdownAsync() => Task.WhenAll(Tiles.Select(t => t.Stream.ShutdownAsync()));
 
     partial void OnFocusedTileChanged(CameraTileViewModel? value)

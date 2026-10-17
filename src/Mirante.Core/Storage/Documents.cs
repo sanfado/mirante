@@ -18,7 +18,12 @@ public enum AppTheme
     System,
 }
 
-public sealed record WindowPlacement(double Left, double Top, double Width, double Height, bool IsMaximized);
+/// <summary>Normal (non-fullscreen) bounds of a window, plus whether it was maximized or fullscreen.</summary>
+public sealed record WindowPlacement(double Left, double Top, double Width, double Height, bool IsMaximized,
+    bool IsFullscreen = false);
+
+/// <summary>A camera that was open in its own window when the app closed.</summary>
+public sealed record DetachedWindowState(Guid CameraId, WindowPlacement Placement);
 
 public sealed record AppSettings
 {
@@ -29,6 +34,11 @@ public sealed record AppSettings
     public string? SnapshotFolder { get; init; }
 
     public WindowPlacement? MainWindow { get; init; }
+
+    public List<DetachedWindowState> DetachedWindows { get; init; } = [];
+
+    /// <summary>Closing the main window hides it in the notification area instead of exiting.</summary>
+    public bool KeepInTray { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true,

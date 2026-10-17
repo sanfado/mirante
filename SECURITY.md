@@ -18,6 +18,7 @@ portas abertas. Ele só inicia conexões para as câmeras cadastradas.
 | Fotos (`%USERPROFILE%\Pictures\Mirante`) | Pasta local, de propósito fora da pasta “Imagens” que o OneDrive costuma sincronizar. |
 | Motor de vídeo (LibVLC) | `--ignore-config` (não herda configurações do VLC instalado), `--keystore=memory` (não persiste credenciais), sem plugins Lua, sem diálogos de login. Credenciais passadas como opções da mídia, não na URL. |
 | Cadeia de suprimentos | Versões centralizadas e travadas (`Directory.Packages.props` + `packages.lock.json`, restore em modo `--locked-mode` no CI), NuGet Audit em todo build, Dependabot, Actions fixadas por SHA. |
+| Instalação | Por usuário, sem administrador (`%LOCALAPPDATA%\Mirante`). “Iniciar com o Windows” usa só a chave `Run` do usuário. A desinstalação remove essa chave e apaga as senhas do Gerenciador de Credenciais. |
 | Código | Análise de código `latest-recommended` com avisos tratados como erro. Executa sem privilégios de administrador. |
 
 ## Limitações conhecidas

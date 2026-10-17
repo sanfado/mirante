@@ -19,23 +19,32 @@
 
 - **Mosaico automático** que aproveita ao máximo a tela (num monitor em pé, as câmeras empilham).
 - **Destacar câmera** em janela própria, no mesmo app, para pôr cada câmera num monitor.
+- **Lembra o layout**: ao reabrir, cada câmera destacada volta ao mesmo monitor, inclusive em tela cheia.
 - **Tela cheia no monitor onde a janela está** (F11), não no monitor principal.
 - **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
 - **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
 - **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
 - **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.
+- **Bandeja e inicialização**: pode iniciar com o Windows e ficar perto do relógio sem gastar processamento com vídeo.
 - Decodificação na GPU (via LibVLC), interface Fluent do Windows 11 com tema escuro/claro.
 
 Feito pensando nas câmeras **TP-Link Tapo** (RTSP `stream1`/`stream2`) e compatível com câmeras RTSP em geral.
 A validação com câmeras reais ainda está em andamento (ver roadmap).
 
+## Instalação
+
+Gere o instalador com `./build/pack.ps1 -Version 0.1.0` e rode `artifacts/releases/Mirante-win-Setup.exe`.
+Ele instala só para o seu usuário (sem administrador), em `%LOCALAPPDATA%\Mirante`, cria atalhos e
+instala o .NET Desktop Runtime 10 se faltar. Desinstale por **Configurações do Windows › Apps**.
+
 ## Segurança e privacidade
 
 - Senhas ficam no **Gerenciador de Credenciais do Windows** (DPAPI), nunca em arquivos do app.
 - O endereço RTSP é montado **sem credenciais**; usuário e senha vão ao motor de vídeo por opções separadas e nunca aparecem em logs.
-- LibVLC roda com `--ignore-config` e `--keystore=memory`: não lê configurações do VLC instalado nem grava senhas em disco. Scripts Lua do VLC não são distribuídos.
+- LibVLC roda com `--ignore-config` e `--keystore=memory`: não lê configurações do VLC instalado nem grava senhas em disco. Scripts e interpretador Lua do VLC não são distribuídos.
 - Configuração validada ao carregar (um arquivo adulterado não injeta URLs arbitrárias); gravação atômica.
 - Sem servidores, portas abertas, contas ou telemetria. O app só conversa com as câmeras que você cadastrou.
+- Ao desinstalar, as senhas das câmeras são apagadas do Gerenciador de Credenciais e a inicialização com o Windows é removida.
 - Versões de pacotes travadas (`packages.lock.json`), auditoria de vulnerabilidades do NuGet no build e Dependabot.
 
 Detalhes e limitações (RTSP não é criptografado) em [SECURITY.md](SECURITY.md).
@@ -59,6 +68,7 @@ Requisitos: Windows 10/11 x64 e .NET SDK 10.
 dotnet build
 dotnet test --project tests/Mirante.Core.Tests
 dotnet run --project src/Mirante.App
+./build/pack.ps1 -Version 0.1.0   # instalador (Velopack) em artifacts/releases
 ```
 
 Modo demonstração (só em Debug), com vídeos locais no lugar das câmeras e capturas automáticas de tela:
@@ -73,6 +83,7 @@ dotnet run --project src/Mirante.App -- --demo <pasta-com-mp4> <pasta-das-captur
 src/Mirante.Core     Regras sem interface: câmeras, validação, RTSP (teste de login), credenciais, layout, persistência
 src/Mirante.App      App WPF (WPF-UI + LibVLCSharp): telas, tiles de vídeo, reconexão
 tests/               Testes (xUnit v3), incluindo câmera RTSP falsa e Gerenciador de Credenciais real
+build/               Empacotamento (Velopack) e arte do instalador
 docs/                Roadmap, decisões de arquitetura (ADR) e capturas
 ```
 

@@ -11,12 +11,16 @@ namespace Mirante.App.Views;
 internal sealed partial class SettingsWindow : FluentWindow
 {
     private readonly SettingsRepository _repository;
+    private readonly Action<bool> _onKeepInTrayChanged;
     private readonly bool _loading = true;
 
-    internal SettingsWindow(SettingsRepository repository)
+    internal SettingsWindow(SettingsRepository repository, Action<bool> onKeepInTrayChanged)
     {
         InitializeComponent();
         _repository = repository;
+        _onKeepInTrayChanged = onKeepInTrayChanged;
+        StartupToggle.IsChecked = StartupRegistration.IsEnabled;
+        TrayToggle.IsChecked = repository.Load().KeepInTray;
         var settings = repository.Load();
         ThemeBox.SelectedIndex = settings.Theme switch
         {
@@ -58,6 +62,25 @@ internal sealed partial class SettingsWindow : FluentWindow
             _repository.Save(_repository.Load() with { SnapshotFolder = dialog.FolderName });
             FolderText.Text = dialog.FolderName;
         }
+    }
+
+    private void OnStartupToggled(object sender, RoutedEventArgs e)
+    {
+        if (StartupToggle.IsChecked == true)
+        {
+            StartupRegistration.Enable();
+        }
+        else
+        {
+            StartupRegistration.Disable();
+        }
+    }
+
+    private void OnTrayToggled(object sender, RoutedEventArgs e)
+    {
+        var keep = TrayToggle.IsChecked == true;
+        _repository.Save(_repository.Load() with { KeepInTray = keep });
+        _onKeepInTrayChanged(keep);
     }
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => Close();

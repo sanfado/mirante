@@ -48,6 +48,13 @@ public sealed class RepositoryTests : IDisposable
     }
 
     [Fact]
+    public void File_without_camera_list_loads_as_empty()
+    {
+        File.WriteAllText(FilePath, """{ "version": 1 }""");
+        Assert.Empty(new CameraRepository(FilePath).Load());
+    }
+
+    [Fact]
     public void Config_file_never_contains_credentials()
     {
         new CameraRepository(FilePath).Save([CameraConfig.CreateNew("Sala", "192.168.1.100")]);
@@ -87,6 +94,29 @@ public class WindowsCredentialStoreTests
         }
 
         Assert.Null(_store.Read(id));
+    }
+
+    [Fact]
+    public void DeleteAll_removes_only_entries_under_its_prefix()
+    {
+        var other = new WindowsCredentialStore($"Mirante.Tests/{Guid.NewGuid():N}/");
+        Guid a = Guid.NewGuid(), b = Guid.NewGuid(), c = Guid.NewGuid();
+        try
+        {
+            _store.Write(a, new CameraCredential("u", "1"));
+            _store.Write(b, new CameraCredential("u", "2"));
+            other.Write(c, new CameraCredential("u", "3"));
+
+            Assert.Equal(2, _store.DeleteAll());
+            Assert.Null(_store.Read(a));
+            Assert.Null(_store.Read(b));
+            Assert.NotNull(other.Read(c));
+            Assert.Equal(0, _store.DeleteAll());
+        }
+        finally
+        {
+            other.Delete(c);
+        }
     }
 
     [Fact]

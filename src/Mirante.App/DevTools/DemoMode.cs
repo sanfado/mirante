@@ -91,12 +91,10 @@ internal static class DemoMode
         Capture(editor, output, "06-adicionar-camera");
         editor.Close();
 
-        var settingsWindow = new SettingsWindow(settings) { Owner = window };
+        var settingsWindow = new SettingsWindow(settings, window.UpdateTrayIcon) { Owner = window };
         settingsWindow.Show();
         await Task.Delay(1200);
         Capture(settingsWindow, output, "07-configuracoes");
-
-        Capture(window, output, "07b-antes-do-tema");
 
         // Same sequence that once left the window half light, half dark: System → Light → Dark.
         foreach (var (theme, name) in new[] { (AppTheme.System, "08-tema-sistema"), (AppTheme.Light, "09-tema-claro"), (AppTheme.Dark, "10-tema-escuro") })
@@ -117,9 +115,50 @@ internal static class DemoMode
         }
 
         settingsWindow.Close();
+        var report = new List<string>();
+
+        // Detached camera remembered across restarts: other monitor + fullscreen.
+        if (viewModel.Tiles.Count > 2)
+        {
+            viewModel.ToggleDetach(viewModel.Tiles[2]);
+            await Task.Delay(3000);
+            var detached = Application.Current.Windows.OfType<DetachedCameraWindow>().First();
+            detached.Left = SystemParameters.VirtualScreenLeft + 200;
+            detached.Top = SystemParameters.VirtualScreenTop + 200;
+            detached.Fullscreen.Enter();
+            await Task.Delay(2000);
+            report.Add($"antes:   {Bounds(detached)} fullscreen={detached.Fullscreen.IsActive}");
+            window.SaveLayout();
+            detached.Close();
+            await Task.Delay(2000);
+            window.RestoreDetachedWindows();
+            await Task.Delay(4000);
+            var restored = Application.Current.Windows.OfType<DetachedCameraWindow>().First();
+            report.Add($"depois:  {Bounds(restored)} fullscreen={restored.Fullscreen.IsActive}");
+            Capture(restored, output, "11-destacada-restaurada");
+            restored.Close();
+            await Task.Delay(2000);
+        }
+
+        // Close to the tray and come back.
+        settings.Save(settings.Load() with { KeepInTray = true });
+        window.UpdateTrayIcon(true);
+        window.Close();
+        await Task.Delay(1500);
+        report.Add($"bandeja: janela visível={window.IsVisible} ícone={window.TrayIcon.IsRegistered} status={viewModel.Tiles[0].Status}");
+        window.BringToFront();
+        await Task.Delay(5000);
+        report.Add($"voltou:  janela visível={window.IsVisible} status={viewModel.Tiles[0].Status}");
+        Capture(window, output, "12-voltou-da-bandeja");
+        settings.Save(settings.Load() with { KeepInTray = false });
+        window.UpdateTrayIcon(false);
+        report.Add($"bandeja desligada: ícone={window.TrayIcon.IsRegistered}");
+        File.WriteAllLines(Path.Combine(output, "relatorio.txt"), report);
 
         Application.Current.Shutdown();
     }
+
+    private static string Bounds(Window w) => $"({w.Left:0},{w.Top:0}) {w.Width:0}x{w.Height:0}";
 
     private static void Capture(Window window, string folder, string name)
     {

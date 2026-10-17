@@ -101,6 +101,44 @@ public sealed class WindowsCredentialStore : ICredentialStore
         }
     }
 
+    /// <summary>
+    /// Removes every credential under this store's prefix (used when the app is uninstalled,
+    /// so camera passwords don't outlive it). Returns how many were removed.
+    /// </summary>
+    public int DeleteAll()
+    {
+        if (!NativeMethods.CredEnumerate(_prefix + "*", 0, out var count, out var list))
+        {
+            var error = Marshal.GetLastWin32Error();
+            return error == ErrorNotFound ? 0 : throw new Win32Exception(error);
+        }
+
+        var targets = new List<string>();
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var item = Marshal.ReadIntPtr(list, i * IntPtr.Size);
+                var target = Marshal.PtrToStringUni(Marshal.PtrToStructure<NativeMethods.Credential>(item).TargetName);
+                if (target is not null && target.StartsWith(_prefix, StringComparison.Ordinal))
+                {
+                    targets.Add(target);
+                }
+            }
+        }
+        finally
+        {
+            NativeMethods.CredFree(list);
+        }
+
+        foreach (var target in targets)
+        {
+            NativeMethods.CredDelete(target, CredTypeGeneric, 0);
+        }
+
+        return targets.Count;
+    }
+
     private string TargetName(Guid cameraId) => _prefix + cameraId.ToString("N");
 
     private static class NativeMethods
@@ -136,6 +174,11 @@ public sealed class WindowsCredentialStore : ICredentialStore
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool CredDelete(string target, uint type, uint flags);
+
+        [DllImport("advapi32.dll", EntryPoint = "CredEnumerateW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool CredEnumerate(string filter, uint flags, out int count, out IntPtr credentials);
 
         [DllImport("advapi32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

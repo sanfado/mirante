@@ -18,8 +18,10 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     private readonly SettingsRepository _settings;
     private readonly Fullscreen _fullscreen;
     private readonly Dictionary<CameraTileViewModel, DetachedCameraWindow> _detached = [];
+    private readonly Dictionary<Guid, WindowPlacement> _pendingPlacements = [];
     private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private string? _toastFolder;
+    private bool _exiting;
 
     internal MainWindow(MainViewModel viewModel, SettingsRepository settings)
     {
@@ -34,9 +36,16 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
             TitleBar.Visibility = _fullscreen.IsActive ? Visibility.Collapsed : Visibility.Visible;
         _toastTimer.Tick += (_, _) => HideToast();
 
-        RestorePlacement(settings.Load().MainWindow);
+        _fullscreen.ApplyPlacement(settings.Load().MainWindow);
         PreviewKeyDown += (_, e) => e.Handled = HandleShortcut(e.Key, Keyboard.Modifiers);
         Closing += OnClosing;
+        Loaded += (_, _) => RestoreDetachedWindows();
+
+#pragma warning disable CS8622 // WPF-UI.Tray's RoutedNotifyIconEvent has nullability attributes no handler signature satisfies.
+        TrayIcon.LeftClick += OnTrayIconClick;
+        TrayIcon.LeftDoubleClick += OnTrayIconClick;
+#pragma warning restore CS8622
+        Loaded += (_, _) => UpdateTrayIcon(settings.Load().KeepInTray); // after the icon auto-registers on load
 
         Services.ThemeService.Changed += RecreateVideoHosts;
         Closed += (_, _) => Services.ThemeService.Changed -= RecreateVideoHosts;
@@ -66,6 +75,12 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     public void BringToFront()
     {
+        if (!IsVisible)
+        {
+            ShowFromTray();
+            return;
+        }
+
         if (WindowState == WindowState.Minimized)
         {
             WindowState = WindowState.Normal;
@@ -100,11 +115,13 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     public void OpenDetached(CameraTileViewModel tile)
     {
-        var window = new DetachedCameraWindow(tile)
+        var window = new DetachedCameraWindow(tile);
+        if (!(_pendingPlacements.Remove(tile.Id, out var placement) && window.Fullscreen.ApplyPlacement(placement)))
         {
-            Left = Left + 60 + (_detached.Count * 32),
-            Top = Top + 60 + (_detached.Count * 32),
-        };
+            window.Left = Left + 60 + (_detached.Count * 32);
+            window.Top = Top + 60 + (_detached.Count * 32);
+        }
+
         window.Closed += (_, _) =>
         {
             _detached.Remove(tile);
@@ -185,7 +202,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
-        new SettingsWindow(_settings) { Owner = this }.ShowDialog();
+        new SettingsWindow(_settings, UpdateTrayIcon) { Owner = this }.ShowDialog();
     }
 
     private void OnToastClick(object sender, MouseButtonEventArgs e)
@@ -213,44 +230,103 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
-        _fullscreen.Exit();
+        if (!_exiting && _settings.Load().KeepInTray)
+        {
+            e.Cancel = true;
+            HideToTray();
+            return;
+        }
+
+        // Remember where everything was (including detached cameras) before closing them.
+        SaveLayout();
         foreach (var window in _detached.Values.ToList())
         {
             window.Close();
         }
 
-        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
-        _settings.Save(_settings.Load() with
-        {
-            MainWindow = new WindowPlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height,
-                WindowState == WindowState.Maximized),
-        });
+        TrayIcon.Unregister();
     }
 
-    private void RestorePlacement(WindowPlacement? placement)
+    internal void SaveLayout() => _settings.Save(_settings.Load() with
     {
-        if (placement is null || placement.Width < MinWidth || placement.Height < MinHeight)
-        {
-            return;
-        }
+        MainWindow = _fullscreen.CapturePlacement(),
+        DetachedWindows = [.. _detached.Select(d => new DetachedWindowState(d.Key.Id, d.Value.Fullscreen.CapturePlacement()))],
+    });
 
-        // Only restore if the window would still be visible (a monitor may have been unplugged).
-        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
-            SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
-        var saved = new Rect(placement.Left, placement.Top, placement.Width, placement.Height);
-        if (!screen.IntersectsWith(saved))
+    /// <summary>Reopens the cameras that were in their own windows last time, where they were.</summary>
+    internal void RestoreDetachedWindows()
+    {
+        foreach (var state in _settings.Load().DetachedWindows)
         {
-            return;
-        }
-
-        WindowStartupLocation = WindowStartupLocation.Manual;
-        Left = placement.Left;
-        Top = placement.Top;
-        Width = placement.Width;
-        Height = placement.Height;
-        if (placement.IsMaximized)
-        {
-            SourceInitialized += (_, _) => WindowState = WindowState.Maximized;
+            if (_viewModel.Tiles.FirstOrDefault(t => t.Id == state.CameraId) is { IsDetached: false } tile)
+            {
+                _pendingPlacements[tile.Id] = state.Placement;
+                _viewModel.ToggleDetach(tile);
+            }
         }
     }
+
+    // ----- Notification area (tray) -----
+
+    /// <summary>Starts with only the tray icon (Windows startup with "keep in tray" on).</summary>
+    public void StartInTray()
+    {
+        new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
+        UpdateTrayIcon(true);
+    }
+
+    public void UpdateTrayIcon(bool visible)
+    {
+        if (visible && !TrayIcon.IsRegistered)
+        {
+            TrayIcon.Register();
+        }
+        else if (!visible && TrayIcon.IsRegistered)
+        {
+            TrayIcon.Unregister();
+        }
+    }
+
+    /// <summary>Hides every window and stops decoding video; the tray icon brings it all back.</summary>
+    private void HideToTray()
+    {
+        SaveLayout();
+        foreach (var window in _detached.Values)
+        {
+            window.Hide();
+        }
+
+        Hide();
+        _viewModel.PauseAll();
+    }
+
+    private void ShowFromTray()
+    {
+        Show();
+        foreach (var window in _detached.Values)
+        {
+            window.Show();
+        }
+
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+        _viewModel.ResumeAll();
+    }
+
+    /// <summary>Really quits, even with "keep in tray" on.</summary>
+    public void ExitApp()
+    {
+        _exiting = true;
+        Close();
+    }
+
+    private void OnTrayIconClick(object sender, RoutedEventArgs e) => ShowFromTray();
+
+    private void OnTrayOpenClick(object sender, RoutedEventArgs e) => ShowFromTray();
+
+    private void OnTrayExitClick(object sender, RoutedEventArgs e) => ExitApp();
 }

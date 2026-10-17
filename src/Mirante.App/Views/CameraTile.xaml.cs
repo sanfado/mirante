@@ -20,6 +20,7 @@ internal sealed partial class CameraTile : UserControl
     public static readonly DependencyProperty IsInDetachedWindowProperty = DependencyProperty.Register(
         nameof(IsInDetachedWindow), typeof(bool), typeof(CameraTile), new PropertyMetadata(false, OnModeChanged));
 
+    private readonly System.Windows.Threading.DispatcherTimer _repaint;
     private CameraTileViewModel? _tile;
 
     public CameraTile()
@@ -37,6 +38,22 @@ internal sealed partial class CameraTile : UserControl
         // The overlay is a separate window that doesn't follow WPF visibility: hide its content ourselves,
         // otherwise labels of hidden cameras would float over the focused one.
         IsVisibleChanged += (_, _) => Overlay.Visibility = IsVisible ? Visibility.Visible : Visibility.Collapsed;
+
+        // When the tile grows (focus mode, fullscreen) the native host doesn't repaint the newly
+        // exposed letterbox area, which showed up as a stray strip. Repaint after each resize.
+        // LibVLC resizes its own window a moment later, so repaint again shortly after.
+        _repaint = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+        _repaint.Tick += (_, _) =>
+        {
+            _repaint.Stop();
+            Helpers.VideoHostBackground.Apply(Video);
+        };
+        Video.SizeChanged += (_, _) =>
+        {
+            Dispatcher.BeginInvoke(() => Helpers.VideoHostBackground.Apply(Video), System.Windows.Threading.DispatcherPriority.Background);
+            _repaint.Stop();
+            _repaint.Start();
+        };
     }
 
     /// <summary>True when this tile lives in a detached window instead of the mosaic.</summary>

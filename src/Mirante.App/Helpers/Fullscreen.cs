@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using Mirante.Core.Storage;
 
 namespace Mirante.App.Helpers;
 
@@ -69,6 +70,64 @@ internal sealed class Fullscreen(Window window)
         window.Height = _restoreBounds.Height;
         window.WindowState = _restoreState;
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The window's normal bounds and state (even while fullscreen), to save on exit.</summary>
+    public WindowPlacement CapturePlacement()
+    {
+        var bounds = IsActive ? _restoreBounds
+            : window.WindowState == WindowState.Normal ? new Rect(window.Left, window.Top, window.Width, window.Height)
+            : window.RestoreBounds;
+        var maximized = IsActive ? _restoreState == WindowState.Maximized : window.WindowState == WindowState.Maximized;
+        return new WindowPlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height, maximized, IsActive);
+    }
+
+    /// <summary>
+    /// Applies a saved placement before the window is shown, including going fullscreen on the
+    /// same monitor. Returns false (and changes nothing) if it would land off-screen, e.g. after
+    /// a monitor was unplugged.
+    /// </summary>
+    public bool ApplyPlacement(WindowPlacement? placement)
+    {
+        if (placement is null || placement.Width < window.MinWidth || placement.Height < window.MinHeight)
+        {
+            return false;
+        }
+
+        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        var saved = new Rect(placement.Left, placement.Top, placement.Width, placement.Height);
+        if (!screen.IntersectsWith(saved))
+        {
+            return false;
+        }
+
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.Left = placement.Left;
+        window.Top = placement.Top;
+        window.Width = placement.Width;
+        window.Height = placement.Height;
+        if (placement.IsFullscreen)
+        {
+            void EnterOnce(object? sender, RoutedEventArgs e)
+            {
+                window.Loaded -= EnterOnce;
+                if (placement.IsMaximized)
+                {
+                    window.WindowState = WindowState.Maximized;
+                }
+
+                Enter();
+            }
+
+            window.Loaded += EnterOnce;
+        }
+        else if (placement.IsMaximized)
+        {
+            window.SourceInitialized += (_, _) => window.WindowState = WindowState.Maximized;
+        }
+
+        return true;
     }
 
     private Rect CurrentMonitorBounds()
