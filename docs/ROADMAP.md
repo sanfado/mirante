@@ -39,3 +39,12 @@
 5. **Acesso fora de casa:** fica fora do escopo (o app Tapo já cobre) ou entra no futuro
    com uma solução segura (ex.: VPN como Tailscale, nunca abrir portas)?
 6. **Idioma** do código/README quando público (hoje: código em inglês, interface em pt-BR).
+
+## Checklist obrigatório antes de tornar público
+
+- [ ] **Publicar num repositório novo** (só com o `main` atual), em vez de mudar a visibilidade
+      deste. O histórico foi reescrito, mas o GitHub ainda guarda os commits antigos, que
+      continuam acessíveis pelo hash (aparecem, por exemplo, nas execuções antigas do CI).
+- [ ] Rodar a busca por dados pessoais (IPs da rede de casa, nomes, usuários de câmera) em
+      todo o histórico e nas capturas de tela.
+- [ ] Ativar *private vulnerability reporting* e *secret scanning* no repositório público.
