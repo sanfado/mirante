@@ -1,0 +1,111 @@
+<UserControl x:Class="Mirante.App.Views.CameraTile"
+             x:ClassModifier="internal"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+             xmlns:vm="clr-namespace:Mirante.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CameraTileViewModel}"
+             d:DesignWidth="640" d:DesignHeight="360">
+    <Border Background="{StaticResource StageVideoBackground}"
+            BorderBrush="{StaticResource StageTileBorder}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Padding="1">
+        <!--
+            O vídeo é uma janela nativa (HWND) e fica por cima de qualquer conteúdo WPF.
+            Por isso tudo que aparece sobre o vídeo vai DENTRO do VideoView: o LibVLCSharp
+            desenha esse conteúdo numa janela transparente sobreposta.
+        -->
+        <vlc:VideoView x:Name="Video">
+            <Grid x:Name="Overlay"
+                  Background="#01000000"
+                  MouseEnter="OnOverlayMouseEnter"
+                  MouseLeave="OnOverlayMouseLeave"
+                  MouseLeftButtonDown="OnOverlayMouseDown">
+
+                <!-- Sem imagem: fundo escuro e fixo (o espaço nativo do vídeo deixa o Mica aparecer) -->
+                <Border Background="{StaticResource StageVideoBackground}"
+                        Visibility="{Binding HasNoPicture, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- Conectando / reconectando -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding ShowSpinner, Converter={StaticResource BoolToVisibility}}">
+                    <ui:ProgressRing IsIndeterminate="True" Width="36" Height="36" Foreground="#FFB4C6FF" />
+                    <TextBlock Margin="0,14,0,0" HorizontalAlignment="Center" Foreground="#CCFFFFFF"
+                               FontSize="13" Text="{Binding BusyText}" />
+                </StackPanel>
+
+                <!-- Problema: sem conexão, senha recusada, sem senha -->
+                <StackPanel MaxWidth="360" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding ShowProblem, Converter={StaticResource BoolToVisibility}}">
+                    <Border Width="56" Height="56" CornerRadius="28" Background="#1AFFFFFF" HorizontalAlignment="Center">
+                        <TextBlock x:Name="ProblemGlyph" FontFamily="{StaticResource FluentSystemIcons}" FontSize="26"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFFCA5A5" />
+                    </Border>
+                    <TextBlock Margin="0,14,0,4" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                               Foreground="White" FontSize="15" FontWeight="SemiBold" Text="{Binding ProblemTitle}" />
+                    <TextBlock HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                               Foreground="#B3FFFFFF" FontSize="12.5" Text="{Binding ProblemMessage}" />
+                    <StackPanel Margin="0,16,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                        <ui:Button Appearance="Primary" Content="Editar câmera" Command="{Binding EditCommand}"
+                                   Icon="{ui:SymbolIcon Edit24}"
+                                   Visibility="{Binding ShowEditAction, Converter={StaticResource BoolToVisibility}}" />
+                        <ui:Button Margin="8,0,0,0" Appearance="Secondary" Content="Tentar agora" Command="{Binding RetryCommand}"
+                                   Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Rodapé: nome + status -->
+                <Border VerticalAlignment="Bottom" Height="64" Background="{StaticResource OverlayBottomShade}"
+                        IsHitTestVisible="False" />
+                <DockPanel Margin="14,0,14,12" VerticalAlignment="Bottom" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="White" FontSize="14"
+                               FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <Border DockPanel.Dock="Left" Margin="10,0,0,0" Padding="8,3" CornerRadius="10"
+                            Background="{StaticResource OverlayChrome}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                                     Fill="{Binding Tone, Converter={StaticResource ToneToBrush}}" />
+                            <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Foreground="#E6FFFFFF"
+                                       FontSize="10.5" FontWeight="SemiBold" Text="{Binding StatusLabel}" />
+                        </StackPanel>
+                    </Border>
+                </DockPanel>
+
+                <!-- Ações (aparecem ao passar o mouse) -->
+                <Border x:Name="Actions" Margin="10" Padding="4" HorizontalAlignment="Right" VerticalAlignment="Top"
+                        CornerRadius="21" Background="{StaticResource OverlayChrome}" Opacity="0">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button Style="{StaticResource OverlayIconButton}" Icon="{ui:SymbolIcon Camera24}"
+                                   ToolTip="Tirar foto (F)" Command="{Binding SnapshotCommand}" />
+                        <ui:Button x:Name="DetachButton" Style="{StaticResource OverlayIconButton}"
+                                   Icon="{ui:SymbolIcon WindowNew24}" ToolTip="Abrir em janela separada"
+                                   Command="{Binding ToggleDetachCommand}" />
+                        <ui:Button x:Name="FocusButton" Style="{StaticResource OverlayIconButton}"
+                                   Icon="{ui:SymbolIcon FullScreenMaximize24}" ToolTip="Tela cheia (F11)"
+                                   Command="{Binding FullscreenCommand}" />
+                        <ui:Button x:Name="MoreButton" Style="{StaticResource OverlayIconButton}"
+                                   Icon="{ui:SymbolIcon MoreHorizontal24}" ToolTip="Mais opções"
+                                   Click="OnMoreClick">
+                            <ui:Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Editar câmera" Command="{Binding EditCommand}"
+                                              Icon="{ui:SymbolIcon Edit24}" />
+                                    <MenuItem Header="Reconectar" Command="{Binding RetryCommand}"
+                                              Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                                    <Separator />
+                                    <MenuItem Header="Remover câmera" Command="{Binding RemoveCommand}"
+                                              Icon="{ui:SymbolIcon Delete24}" />
+                                </ContextMenu>
+                            </ui:Button.ContextMenu>
+                        </ui:Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </vlc:VideoView>
+    </Border>
+</UserControl>

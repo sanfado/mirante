@@ -1,0 +1,3 @@
+[*.cs]
+# Nomes de teste descritivos com sublinhado (Metodo_situacao_resultado).
+dotnet_diagnostic.CA1707.severity = none

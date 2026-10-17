@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Qualidade: avisos viram erros e a análise de código roda em todo build. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+
+    <!-- Cadeia de suprimentos: versões travadas em lock file e auditoria de vulnerabilidades. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+
+    <Product>Mirante</Product>
+    <Authors>Sanfado</Authors>
+    <Company>Sanfado</Company>
+    <Copyright>© 2026 Sanfado</Copyright>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

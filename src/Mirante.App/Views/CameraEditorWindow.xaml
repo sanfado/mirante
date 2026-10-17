@@ -1,0 +1,111 @@
+<ui:FluentWindow x:Class="Mirante.App.Views.CameraEditorWindow"
+                 x:ClassModifier="internal"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Câmera"
+                 Width="500" SizeToContent="Height"
+                 ResizeMode="NoResize"
+                 ShowInTaskbar="False"
+                 WindowStartupLocation="CenterOwner"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round">
+    <Window.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,14,0,6" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Height="36" ShowMaximize="False" ShowMinimize="False" />
+
+        <StackPanel Grid.Row="1" Margin="28,0,28,20">
+            <TextBlock x:Name="Heading" FontSize="22" FontWeight="SemiBold" Text="Adicionar câmera" />
+            <TextBlock Margin="0,4,0,4" FontSize="13" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="Câmeras da sua rede local, via RTSP. Nada passa pela nuvem." />
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Nome" />
+            <ui:TextBox x:Name="NameBox" PlaceholderText="Ex.: Sala, Garagem" Icon="{ui:SymbolIcon Video24}" MaxLength="40" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="170" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Endereço IP" />
+                    <ui:TextBox x:Name="HostBox" PlaceholderText="Ex.: 192.168.1.100" MaxLength="253" TextChanged="OnAddressChanged" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Qualidade" />
+                    <ComboBox x:Name="QualityBox" SelectionChanged="OnQualityChanged">
+                        <ComboBoxItem Content="Alta (stream1)" Tag="stream1" />
+                        <ComboBoxItem Content="Leve (stream2)" Tag="stream2" />
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+
+            <Expander Margin="0,14,0,0" Header="Opções avançadas">
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Porta RTSP" />
+                        <ui:TextBox x:Name="PortBox" Text="554" MaxLength="5" TextChanged="OnAddressChanged" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Caminho do vídeo" />
+                        <ui:TextBox x:Name="PathBox" Text="stream1" MaxLength="200" TextChanged="OnAddressChanged" />
+                    </StackPanel>
+                </Grid>
+            </Expander>
+
+            <Border Margin="0,20,0,0" Padding="16,14" CornerRadius="8"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="18" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Margin="8,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Text="Conta da câmera" />
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,0" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="Na Tapo: câmera › Configurações avançadas › Conta da câmera. Não é o login da sua conta TP-Link. A senha fica no Gerenciador de Credenciais do Windows." />
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Usuário" />
+                    <ui:TextBox x:Name="UserBox" Icon="{ui:SymbolIcon Person24}" MaxLength="64" TextChanged="OnAddressChanged" />
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Senha" />
+                    <ui:PasswordBox x:Name="PasswordBox" Icon="{ui:SymbolIcon Key24}" MaxLength="256" />
+                </StackPanel>
+            </Border>
+
+            <ui:InfoBar x:Name="ResultBar" Margin="0,16,0,0" IsClosable="False" IsOpen="False" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="28,16" Background="{DynamicResource LayerFillColorAltBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="False">
+                <ui:Button x:Name="TestButton" DockPanel.Dock="Left" Appearance="Secondary"
+                           Icon="{ui:SymbolIcon PlugDisconnected24}" Content="Testar conexão" Click="OnTestClick" />
+                <ui:ProgressRing x:Name="Busy" DockPanel.Dock="Left" Margin="12,0,0,0" Width="18" Height="18"
+                                 IsIndeterminate="True" Visibility="Collapsed" />
+                <ui:Button x:Name="SaveButton" DockPanel.Dock="Right" Appearance="Primary" Content="Salvar"
+                           MinWidth="96" IsDefault="True" Click="OnSaveClick" />
+                <ui:Button DockPanel.Dock="Right" Margin="0,0,8,0" Appearance="Secondary" Content="Cancelar"
+                           MinWidth="96" IsCancel="True" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

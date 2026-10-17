@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mirante.App/Mirante.App.csproj" />
+    <Project Path="src/Mirante.Core/Mirante.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mirante.Core.Tests/Mirante.Core.Tests.csproj" />
+  </Folder>
+</Solution>

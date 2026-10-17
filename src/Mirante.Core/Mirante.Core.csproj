@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Lógica do app sem nenhuma dependência de interface (WPF) nem de player de vídeo.
+    O que é específico do Windows fica isolado em Platform/Windows.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Mirante.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mirante.Core.Tests" />
+  </ItemGroup>
+
+</Project>
