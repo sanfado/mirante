@@ -17,6 +17,9 @@ internal interface IShell
 
     Task<bool> ConfirmRemoveAsync(string cameraName);
 
+    /// <summary>Lets the user reorder the cameras; returns the new order or null if cancelled.</summary>
+    IReadOnlyList<Guid>? OrganizeCameras(IReadOnlyList<(Guid Id, string Name)> cameras);
+
     void OpenDetached(CameraTileViewModel tile);
 
     void CloseDetached(CameraTileViewModel tile);
@@ -102,6 +105,30 @@ internal sealed partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void MuteAll() => AudioTile = null;
+
+    [RelayCommand]
+    private void Organize()
+    {
+        if (Shell?.OrganizeCameras([.. Tiles.Select(t => (t.Id, t.Name))]) is { } order)
+        {
+            ApplyOrder(order);
+        }
+    }
+
+    /// <summary>Puts the cameras in <paramref name="order"/> (mosaic, keys 1–9) and saves it.</summary>
+    public void ApplyOrder(IReadOnlyList<Guid> order)
+    {
+        for (var target = 0; target < order.Count && target < Tiles.Count; target++)
+        {
+            var current = Tiles.ToList().FindIndex(t => t.Id == order[target]);
+            if (current >= 0 && current != target)
+            {
+                Tiles.Move(current, target);
+            }
+        }
+
+        Save();
+    }
 
     public bool AllDetached => Tiles.Count > 0 && Tiles.All(t => t.IsDetached);
 

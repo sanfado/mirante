@@ -91,6 +91,22 @@ internal static class DemoMode
 
         File.WriteAllLines(Path.Combine(output, "00-audio.txt"), audio);
 
+        // Organize cameras: the dialog, then a reversed order applied to the mosaic.
+        var organize = new OrganizeCamerasWindow(viewModel.Tiles.Select(t => (t.Id, t.Name))) { Owner = window };
+        organize.Show();
+        await Task.Delay(1000);
+        RenderElement((FrameworkElement)organize.Content, output, "01c-organizar");
+        organize.Close();
+        var before = string.Join(", ", viewModel.Tiles.Select(t => t.Name));
+        viewModel.ApplyOrder([.. viewModel.Tiles.Select(t => t.Id).Reverse()]);
+        await Task.Delay(7000);
+        File.WriteAllLines(Path.Combine(output, "00-ordem.txt"),
+        [
+            $"antes:  {before}",
+            $"depois: {string.Join(", ", viewModel.Tiles.Select(t => $"{t.Name}={t.Status}"))}",
+        ]);
+        Capture(window, output, "01d-ordem-invertida");
+
         if (viewModel.Tiles.Count == 0)
         {
             Application.Current.Shutdown();

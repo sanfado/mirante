@@ -31,6 +31,10 @@
                 <Border Background="{StaticResource StageVideoBackground}"
                         Visibility="{Binding HasNoPicture, Converter={StaticResource BoolToVisibility}}" />
 
+                <!-- Faixas em volta da imagem (letterbox), desenhadas aqui: as do próprio VLC saem
+                     pretas e o Windows as torna transparentes sobre o efeito Mica. -->
+                <Path x:Name="Bars" Fill="{StaticResource StageVideoBackground}" IsHitTestVisible="False" />
+
                 <!-- Conectando / reconectando -->
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                             Visibility="{Binding ShowSpinner, Converter={StaticResource BoolToVisibility}}">
@@ -105,6 +109,8 @@
                                               Icon="{ui:SymbolIcon Edit24}" />
                                     <MenuItem Header="Reconectar" Command="{Binding RetryCommand}"
                                               Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                                    <MenuItem Header="Organizar câmeras…" Command="{Binding OrganizeCommand}"
+                                              Icon="{ui:SymbolIcon ArrowSort24}" />
                                     <Separator />
                                     <MenuItem Header="Remover câmera" Command="{Binding RemoveCommand}"
                                               Icon="{ui:SymbolIcon Delete24}" />

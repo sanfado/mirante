@@ -132,6 +132,9 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     [RelayCommand]
     private void ToggleAudio() => _owner.ToggleAudio(this);
 
+    [RelayCommand]
+    private void Organize() => _owner.OrganizeCommand.Execute(null);
+
     private void OnStreamChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(CameraStream.Status))

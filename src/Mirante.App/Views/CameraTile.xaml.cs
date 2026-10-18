@@ -22,6 +22,7 @@ internal sealed partial class CameraTile : UserControl
 
     private readonly System.Windows.Threading.DispatcherTimer _repaint;
     private CameraTileViewModel? _tile;
+    private (uint Width, uint Height)? _videoSize;
 
     public CameraTile()
     {
@@ -48,6 +49,7 @@ internal sealed partial class CameraTile : UserControl
             _repaint.Stop();
             Helpers.VideoHostBackground.Apply(Video);
         };
+        Overlay.SizeChanged += (_, _) => UpdateBars();
         Video.SizeChanged += (_, _) =>
         {
             Dispatcher.BeginInvoke(() => Helpers.VideoHostBackground.Apply(Video), System.Windows.Threading.DispatcherPriority.Background);
@@ -108,6 +110,59 @@ internal sealed partial class CameraTile : UserControl
         {
             ShowAudioState();
         }
+        else if (e.PropertyName == nameof(CameraTileViewModel.Status))
+        {
+            if (_tile?.Status == Mirante.App.Video.StreamStatus.Live)
+            {
+                // LibVLC creates its video window when playback starts; paint around it once it's there.
+                _repaint.Stop();
+                _repaint.Start();
+                ReadVideoSize();
+            }
+
+            UpdateBars();
+        }
+    }
+
+    /// <summary>Video resolution, read off the UI thread (LibVLC calls can block briefly).</summary>
+    private void ReadVideoSize()
+    {
+        var player = _tile?.Stream.Player;
+        if (player is null)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            uint width = 0, height = 0;
+            var known = player.Size(0, ref width, ref height) && width > 0 && height > 0;
+            Dispatcher.BeginInvoke(() =>
+            {
+                _videoSize = known ? (width, height) : null;
+                UpdateBars();
+            });
+        });
+    }
+
+    /// <summary>Dark frame around the picture: the tile minus the area the video actually fills.</summary>
+    private void UpdateBars()
+    {
+        double w = Overlay.ActualWidth, h = Overlay.ActualHeight;
+        if (_tile?.Status != Mirante.App.Video.StreamStatus.Live || _videoSize is not var (vw, vh) || w <= 0 || h <= 0)
+        {
+            Bars.Data = null;
+            return;
+        }
+
+        var scale = Math.Min(w / vw, h / vh);
+        double pw = vw * scale, ph = vh * scale;
+        var picture = new Rect((w - pw) / 2, (h - ph) / 2, pw, ph);
+        var frame = new System.Windows.Media.GeometryGroup { FillRule = System.Windows.Media.FillRule.EvenOdd };
+        frame.Children.Add(new System.Windows.Media.RectangleGeometry(new Rect(0, 0, w, h)));
+        frame.Children.Add(new System.Windows.Media.RectangleGeometry(picture));
+        frame.Freeze();
+        Bars.Data = frame;
     }
 
     private void ShowAudioState()

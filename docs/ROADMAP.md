@@ -24,7 +24,7 @@
 
 ## Próximas versões (propostas, a conversar)
 
-- **0.2 — Conforto:** reorganizar a ordem das câmeras; layouts salvos (ex.: “Noite”,
+- **0.2 — Conforto:** ~~reorganizar a ordem das câmeras~~ (feito na 0.2.0); layouts salvos (ex.: “Noite”,
   “Garagem grande”) — definir o que um layout guarda antes de implementar.
 - **Interface em inglês** (hoje só pt-BR; o README já é bilíngue).
 - **0.3 — PTZ:** (áudio por câmera já feito: uma por vez, com volume); girar a câmera (ONVIF) quando suportado.

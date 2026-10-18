@@ -104,6 +104,9 @@
                     <ui:Button Style="{StaticResource TitleBarButton}" Appearance="Primary" Margin="8,0,4,0"
                                Icon="{ui:SymbolIcon Add24}" Content="Adicionar câmera"
                                Command="{Binding AddCameraCommand}" ToolTip="Adicionar câmera (Ctrl+N)" />
+                    <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon ArrowSort24}"
+                               ToolTip="Organizar câmeras" Command="{Binding OrganizeCommand}"
+                               Visibility="{Binding HasCameras, Converter={StaticResource BoolToVisibility}}" />
                     <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon ImageMultiple24}"
                                ToolTip="Abrir pasta de fotos" Click="OnOpenSnapshotsClick" />
                     <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon FullScreenMaximize24}"

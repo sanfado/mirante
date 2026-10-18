@@ -118,6 +118,12 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
         return await box.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
     }
 
+    public IReadOnlyList<Guid>? OrganizeCameras(IReadOnlyList<(Guid Id, string Name)> cameras)
+    {
+        var window = new OrganizeCamerasWindow(cameras) { Owner = this };
+        return window.ShowDialog() == true ? window.Result : null;
+    }
+
     public void OpenDetached(CameraTileViewModel tile)
     {
         var window = new DetachedCameraWindow(tile);
