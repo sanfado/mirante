@@ -43,10 +43,16 @@ internal static class DemoMode
             credentials.Write(config.Id, new CameraCredential("demo", "demo"));
         }
 
+        // A camera that never connects (like a typo'd IP): keeps reconnecting until removed.
+        var ghost = CameraConfig.CreateNew("Fantasma", "192.0.2.1");
+        configs.Add(ghost);
+        credentials.Write(ghost.Id, new CameraCredential("demo", "demo"));
+
         var cameras = new CameraRepository(Path.Combine(data, "cameras.json"));
         cameras.Save(configs);
-        engine.DemoMedia = config => new Media(engine.LibVlc, new Uri(clips[configs.FindIndex(c => c.Id == config.Id)]),
-            ":input-repeat=65535");
+        engine.DemoMedia = config => config.Id == ghost.Id
+            ? new Media(engine.LibVlc, new Uri(Path.Combine(data, "nao-existe.mp4")))
+            : new Media(engine.LibVlc, new Uri(clips[configs.FindIndex(c => c.Id == config.Id)]), ":input-repeat=65535");
         return (cameras, new SettingsRepository(Path.Combine(data, "settings.json")), credentials);
     }
 
@@ -207,6 +213,27 @@ internal static class DemoMode
         settings.Save(settings.Load() with { KeepInTray = false });
         window.UpdateTrayIcon(false);
         report.Add($"bandeja desligada: ícone={window.TrayIcon.IsRegistered}");
+
+        // Removing cameras in every state must never take the app down (it once crashed here).
+        if (viewModel.Tiles.FirstOrDefault(t => t.Status == Video.StreamStatus.Live) is { } detachTarget)
+        {
+            viewModel.ToggleDetach(detachTarget);
+            await Task.Delay(3000);
+        }
+
+        var victims = viewModel.Tiles
+            .Where(t => t.Name == "Fantasma" || t.IsDetached || t.Status == Video.StreamStatus.MissingCredentials)
+            .Concat(viewModel.Tiles.Where(t => t.Status == Video.StreamStatus.Live && !t.IsDetached).Take(1))
+            .Distinct().ToList();
+        var states = string.Join(", ", victims.Select(t => $"{t.Name}={(t.IsDetached ? "Destacada" : t.Status.ToString())}"));
+        foreach (var victim in victims)
+        {
+            viewModel.RemoveCamera(victim);
+        }
+
+        await Task.Delay(6000);
+        report.Add($"removidas: {states}");
+        report.Add($"app de pé após remover; restantes: {string.Join(", ", viewModel.Tiles.Select(t => $"{t.Name}={t.Status}"))}");
         File.WriteAllLines(Path.Combine(output, "relatorio.txt"), report);
 
         Application.Current.Shutdown();

@@ -189,9 +189,19 @@ internal sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        RemoveCamera(tile);
+    }
+
+    /// <summary>Removes the camera without asking (the confirmation is the caller's job).</summary>
+    public void RemoveCamera(CameraTileViewModel tile)
+    {
+        // Stop the player first, while its view still exists; everything after this
+        // (closing its window, removing its tile) can no longer touch the player.
+        _ = tile.Stream.ShutdownAsync();
+
         if (tile.IsDetached)
         {
-            Shell.CloseDetached(tile);
+            Shell?.CloseDetached(tile);
         }
 
         if (ReferenceEquals(FocusedTile, tile))
@@ -205,7 +215,6 @@ internal sealed partial class MainViewModel : ObservableObject
         }
 
         Tiles.Remove(tile);
-        _ = tile.Stream.ShutdownAsync();
         _credentials.Delete(tile.Id);
         Save();
     }

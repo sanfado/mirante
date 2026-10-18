@@ -48,6 +48,8 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     private bool _audioOn;
     private int _volume = 80;
     private bool _paused;
+    private bool _playerDisposed; // only read/written while holding _playerGate
+    private Task? _shutdown;
     private bool _disposed;
 
     [ObservableProperty]
@@ -94,7 +96,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     /// <summary>Stops the stream if it is currently shown on <paramref name="view"/>.</summary>
     public void Release(VideoView view)
     {
-        if (!ReferenceEquals(_view, view))
+        if (_disposed || !ReferenceEquals(_view, view))
         {
             return;
         }
@@ -135,7 +137,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     {
         var mute = !_audioOn;
         var volume = _volume;
-        _ = Task.Run(() =>
+        _ = RunPlayerAsync(() =>
         {
             Player.Mute = mute;
             Player.Volume = volume;
@@ -163,7 +165,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
 
     public bool TakeSnapshot(string path)
     {
-        if (!IsLive)
+        if (_disposed || !IsLive)
         {
             return false;
         }
@@ -311,12 +313,20 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Every call into the player goes through here, one at a time and off the UI thread.
+    /// Once the player is disposed, late calls (a stop from a view unloading, an audio change)
+    /// are dropped: touching a disposed LibVLC player crashes the whole process.
+    /// </summary>
     private async Task RunPlayerAsync(Action action)
     {
         await _playerGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            await Task.Run(action).ConfigureAwait(false);
+            if (!_playerDisposed)
+            {
+                await Task.Run(action).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -331,26 +341,40 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
         _retry = null;
     }
 
-    /// <summary>Stops playback in the background; LibVLC's Stop can block for seconds on RTSP.</summary>
+    /// <summary>
+    /// Stops and disposes the player in the background (LibVLC's Stop can block for seconds on
+    /// RTSP). Safe to call more than once. Must be called on the UI thread.
+    /// </summary>
     public Task ShutdownAsync()
     {
+        if (_shutdown is not null)
+        {
+            return _shutdown;
+        }
+
         _disposed = true;
         CancelRetry();
         _watchdog.Stop();
         Player.Vout -= OnVout;
         Player.EncounteredError -= OnPlayerFailed;
         Player.EndReached -= OnPlayerFailed;
-        return Task.Run(() =>
+
+        // Detach from the view now, while the player is still alive: the view's own cleanup
+        // (when the camera is removed from the screen) would otherwise touch a disposed player.
+        if (_view is not null)
+        {
+            _view.MediaPlayer = null;
+            _view = null;
+        }
+
+        return _shutdown = RunPlayerAsync(() =>
         {
             Player.Stop();
             Player.Dispose();
             _media?.Dispose();
+            _playerDisposed = true;
         });
     }
 
-    public void Dispose()
-    {
-        _ = ShutdownAsync();
-        _playerGate.Dispose();
-    }
+    public void Dispose() => _ = ShutdownAsync();
 }
