@@ -152,19 +152,16 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
         var mute = !_audioOn;
         var volume = Volume;
         var voice = Config.VoiceBoost;
-        var (playerVolume, preampDb) = AudioBoost.Split(volume, voice);
-        var useEqualizer = AudioBoost.NeedsEqualizer(volume, voice);
         _ = RunPlayerAsync(() =>
         {
             Player.Mute = mute;
-            Player.Volume = playerVolume;
-            if (useEqualizer)
+            // Above 100 the audio output amplifies in software (up to +12 dB at 200%).
+            Player.Volume = AudioBoost.PlayerVolume(volume);
+            if (voice)
             {
-                // Above 100% the extra gain is a software pre-amplification in the audio chain,
-                // independent of the output device; "Realçar voz" adds the speech curve.
                 using var equalizer = new Equalizer();
-                equalizer.SetPreamp((float)preampDb);
-                for (var band = 0; voice && band < AudioBoost.VoiceBands.Count; band++)
+                equalizer.SetPreamp((float)AudioBoost.VoiceEqualizerPreampDb);
+                for (var band = 0; band < AudioBoost.VoiceBands.Count; band++)
                 {
                     equalizer.SetAmp((float)AudioBoost.VoiceBands[band], (uint)band);
                 }
@@ -176,7 +173,7 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
                 Player.UnsetEqualizer();
             }
 
-            AudioState = $"mudo={mute} volume={playerVolume} preamp={preampDb:0.#}dB equalizador={useEqualizer} voz={voice}";
+            AudioState = $"mudo={mute} volume={volume} realçar-voz={voice}";
         });
     }
 

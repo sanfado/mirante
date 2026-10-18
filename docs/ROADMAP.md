@@ -27,6 +27,8 @@
 - **0.2.0:** organizar a ordem das câmeras (mosaico e teclas 1–9).
 - **0.2.1:** corrige o app fechando ao excluir uma câmera.
 - **0.3.0:** volume até 200% e “Realçar voz”, salvos por câmera.
+- **0.3.1:** corrige o áudio da 0.3.0: o equalizador do VLC baixava tudo em 12 dB (acima de 100% e
+  com “Realçar voz” o som ficava mais baixo); agora 200% = +12 dB e o realce sobe a voz de verdade.
 
 ## Próximas versões (propostas, a conversar)
 

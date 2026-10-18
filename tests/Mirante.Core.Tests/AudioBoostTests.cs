@@ -10,34 +10,28 @@ public sealed class AudioBoostTests : IDisposable
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
     [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(80, 80, 0)]
-    [InlineData(100, 100, 0)]
-    [InlineData(150, 100, 6)]
-    [InlineData(200, 100, 12)]
-    [InlineData(999, 100, 12)] // tampered config: clamped
-    [InlineData(-5, 0, 0)]
-    public void Volume_above_100_becomes_software_gain(int volume, int player, double preamp)
-    {
-        var (playerVolume, preampDb) = AudioBoost.Split(volume);
-        Assert.Equal(player, playerVolume);
-        Assert.Equal(preamp, preampDb, precision: 6);
-    }
+    [InlineData(0, 0)]
+    [InlineData(80, 80)]
+    [InlineData(100, 100)]
+    [InlineData(150, 126)] // +6 dB
+    [InlineData(200, 158)] // +12 dB: LibVLC's gain is (volume/100)³
+    [InlineData(999, 158)] // tampered config: clamped
+    [InlineData(-5, 0)]
+    public void Volume_above_100_maps_linearly_in_dB(int volume, int player) =>
+        Assert.Equal(player, AudioBoost.PlayerVolume(volume));
 
     [Fact]
-    public void Voice_boost_adds_a_little_gain_within_limits()
-    {
-        Assert.Equal(AudioBoost.VoicePreampDb, AudioBoost.Split(100, voiceBoost: true).PreampDb, precision: 6);
-        Assert.Equal(AudioBoost.MaxBoostDb + AudioBoost.VoicePreampDb, AudioBoost.Split(200, voiceBoost: true).PreampDb, precision: 6);
-        Assert.True(AudioBoost.Split(200, voiceBoost: true).PreampDb <= AudioBoost.MaxPreampDb);
-    }
+    public void Max_volume_is_12_dB_above_unity() =>
+        Assert.Equal(AudioBoost.MaxBoostDb, 60 * Math.Log10(AudioBoost.PlayerVolume(AudioBoost.MaxVolume) / 100.0), precision: 0);
 
     [Fact]
-    public void Equalizer_only_when_needed()
+    public void Voice_boost_compensates_the_equalizer_attenuation()
     {
-        Assert.False(AudioBoost.NeedsEqualizer(100, voiceBoost: false));
-        Assert.True(AudioBoost.NeedsEqualizer(101, voiceBoost: false));
-        Assert.True(AudioBoost.NeedsEqualizer(50, voiceBoost: true));
+        // LibVLC 3's equalizer outputs 0.25 × the signal; the preamp must give those 12 dB back
+        // (a flat equalizer at 0 dB made everything quieter in 0.3.0).
+        Assert.Equal(AudioBoost.EqualizerUnityPreampDb, 20 * Math.Log10(4), precision: 2);
+        Assert.Equal(AudioBoost.EqualizerUnityPreampDb + AudioBoost.VoicePreampDb, AudioBoost.VoiceEqualizerPreampDb, precision: 6);
+        Assert.True(AudioBoost.VoiceEqualizerPreampDb <= 20); // LibVLC's preamp limit
     }
 
     [Fact]

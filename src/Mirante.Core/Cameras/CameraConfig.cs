@@ -19,7 +19,7 @@ public sealed record CameraConfig
     /// <summary>Sound volume 0–200% (above 100 the app amplifies). Null = the app's default.</summary>
     public int? Volume { get; init; }
 
-    /// <summary>"Realçar voz": compressor + speech equalization for hard-to-hear camera audio.</summary>
+    /// <summary>"Realçar voz": speech equalization for hard-to-hear camera audio.</summary>
     public bool VoiceBoost { get; init; }
 
     public static CameraConfig CreateNew(string name, string host, int port = DefaultRtspPort,
