@@ -5,96 +5,103 @@
 <h1 align="center">Mirante</h1>
 
 <p align="center">
-  Suas câmeras de casa, ao vivo e lado a lado, direto no PC.<br/>
-  Sem nuvem, sem conta, sem telemetria.
+  Your home cameras, live and side by side, right on your PC.<br/>
+  No cloud, no account, no telemetry.
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/mosaico.png" width="760" alt="Mosaico de câmeras (vídeos de demonstração)" />
+  <b>English</b> · <a href="README.pt-BR.md">Português</a>
 </p>
 
-> **Status:** versão 0.1 (primeiras versões públicas). Baixe o instalador em [Releases](https://github.com/sanfado/mirante/releases). Próximos passos em [docs/ROADMAP.md](docs/ROADMAP.md).
+<p align="center">
+  <img src="docs/screenshots/mosaico.png" width="760" alt="Camera mosaic (demo videos)" />
+</p>
 
-## O que faz
+> **Status:** 0.x, first public releases. Get the installer from [Releases](https://github.com/sanfado/mirante/releases).
+> The interface is in Brazilian Portuguese for now; English is on the [roadmap](docs/ROADMAP.md).
 
-- **Mosaico automático** que aproveita ao máximo a tela (num monitor em pé, as câmeras empilham).
-- **Destacar câmera** em janela própria, no mesmo app, para pôr cada câmera num monitor.
-- **Lembra o layout**: ao reabrir, cada câmera destacada volta ao mesmo monitor, inclusive em tela cheia.
-- **Tela cheia no monitor onde a janela está** (F11), não no monitor principal.
-- **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
-- **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
-- **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
-- **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.
-- **Atualizações sem surpresa**: baixa versões novas em segundo plano e mostra um botão; só instala quando você clica.
-- **Bandeja e inicialização**: pode iniciar com o Windows e ficar perto do relógio sem gastar processamento com vídeo.
-- Decodificação na GPU (via LibVLC), interface Fluent do Windows 11 com tema escuro/claro.
+## Features
 
-Feito pensando nas câmeras **TP-Link Tapo** (RTSP `stream1`/`stream2`) e compatível com câmeras RTSP em geral.
-A validação com câmeras reais ainda está em andamento (ver roadmap).
+- **Automatic mosaic** that makes the most of the screen (on a portrait monitor, cameras stack).
+- **Pop out a camera** into its own window, in the same app, to put each camera on a different monitor.
+- **Remembers the layout**: on reopen, each popped-out camera returns to the same monitor, fullscreen included.
+- **Fullscreen on the monitor the window is on** (F11), not on the primary monitor.
+- **Focus**: double-click or keys `1`–`9` to show one camera large; `Esc` goes back.
+- **Audio**: a sound button per camera, one playing at a time, with volume.
+- **Snapshots** (`F` or the camera's button) saved locally to `Pictures\Mirante`, outside OneDrive.
+- **Automatic reconnection** with diagnosis: tells "password rejected" apart from "camera offline".
+- **Connection test** when adding a camera: checks IP, port and password before saving.
+- **No-surprise updates**: new versions download in the background and a button appears; nothing installs until you click.
+- **Tray and startup**: can start with Windows and sit by the clock without spending CPU on video.
+- GPU decoding (LibVLC), Windows 11 Fluent interface with dark/light theme.
 
-## Instalação
+Built with **TP-Link Tapo** cameras in mind (RTSP `stream1`/`stream2`) and compatible with RTSP cameras in
+general (Intelbras, Hikvision, Dahua, Reolink…) in H.264, H.265 or MJPEG.
 
-Gere o instalador com `./build/pack.ps1 -Version 0.1.0` e rode `artifacts/releases/Mirante-win-Setup.exe`.
-Ele instala só para o seu usuário (sem administrador), em `%LOCALAPPDATA%\Mirante`, cria atalhos e
-instala o .NET Desktop Runtime 10 se faltar. Desinstale por **Configurações do Windows › Apps**.
+## Install
 
-**Publicar uma versão:** `git tag v0.2.0 && git push origin v0.2.0`. O workflow `Release` testa,
-gera o instalador (com atualização delta a partir das versões anteriores) e publica no GitHub
-Releases, de onde os apps instalados se atualizam.
+Download `Mirante-win-Setup.exe` from [Releases](https://github.com/sanfado/mirante/releases) and run it.
+It installs for your user only (no admin rights), creates shortcuts and installs the .NET Desktop Runtime 10 if missing.
+The installer is not code-signed yet, so Windows may warn about an "unknown publisher".
+Uninstall from **Windows Settings › Apps**.
 
-## Segurança e privacidade
+## Security and privacy
 
-- Senhas ficam no **Gerenciador de Credenciais do Windows** (DPAPI), nunca em arquivos do app.
-- O endereço RTSP é montado **sem credenciais**; usuário e senha vão ao motor de vídeo por opções separadas e nunca aparecem em logs.
-- LibVLC roda com `--ignore-config` e `--keystore=memory`: não lê configurações do VLC instalado nem grava senhas em disco. Do VLC vão só os ~50 plugins que o app usa (RTSP, decodificação, vídeo, foto): nada de Lua, áudio, codificadores, DVD, legendas ou streaming de saída.
-- Configuração validada ao carregar (um arquivo adulterado não injeta URLs arbitrárias); gravação atômica.
-- Sem servidores, portas abertas, contas ou telemetria. O app conversa com as câmeras que você cadastrou e, se a opção estiver ligada (padrão), com o GitHub para procurar versões novas do próprio Mirante. Nenhum dado seu é enviado.
-- Ao desinstalar, as senhas das câmeras são apagadas do Gerenciador de Credenciais e a inicialização com o Windows é removida.
-- Versões de pacotes travadas (`packages.lock.json`), auditoria de vulnerabilidades do NuGet no build e Dependabot.
+- Passwords live in the **Windows Credential Manager** (DPAPI), never in the app's files.
+- RTSP URLs are built **without credentials**; user and password reach the video engine as separate options and never show up in logs.
+- LibVLC runs with `--ignore-config` and `--keystore=memory`: it doesn't read an installed VLC's settings nor store passwords on disk. Only the VLC plugins the app needs are shipped (RTSP, decoding, audio, video, snapshots): no Lua, encoders, DVD, subtitles or streaming output.
+- Configuration is validated on load (a tampered file can't inject arbitrary URLs) and written atomically.
+- No servers, open ports, accounts or telemetry. The app talks to the cameras you add and, if enabled (default), to GitHub to look for new Mirante versions. None of your data is sent.
+- Uninstalling deletes the camera passwords from the Credential Manager and removes the startup entry.
+- Locked package versions (`packages.lock.json`), NuGet vulnerability audit on every build, Dependabot.
 
-Detalhes e limitações (RTSP não é criptografado) em [SECURITY.md](SECURITY.md).
+Details and limitations (RTSP is not encrypted) in [SECURITY.md](SECURITY.md).
 
-## Atalhos
+## Shortcuts
 
-| Tecla | Ação |
+| Key | Action |
 |---|---|
-| `F11` | Tela cheia no monitor atual |
-| `Esc` | Sai da tela cheia / do foco |
-| `1`–`9` / `0` | Foca a câmera N / volta ao mosaico |
-| `F` | Foto da câmera sob o mouse |
-| `Ctrl+N` | Adicionar câmera |
-| Duplo-clique | Foca a câmera (na janela destacada: tela cheia) |
+| `F11` | Fullscreen on the current monitor |
+| `Esc` | Leave fullscreen / focus |
+| `1`–`9` / `0` | Focus camera N / back to the mosaic |
+| `M` | Toggle the camera's sound |
+| `F` | Snapshot of the camera under the mouse |
+| `Ctrl+N` | Add camera |
+| Double-click | Focus the camera (in a popped-out window: fullscreen) |
 
-## Desenvolvimento
+## Development
 
-Requisitos: Windows 10/11 x64 e .NET SDK 10.
+Requirements: Windows 10/11 x64 and .NET SDK 10.
 
 ```bash
 dotnet build
 dotnet test --project tests/Mirante.Core.Tests
 dotnet run --project src/Mirante.App
-./build/pack.ps1 -Version 0.1.0   # instalador (Velopack) em artifacts/releases
+./build/pack.ps1 -Version 0.1.0   # installer (Velopack) in artifacts/releases
 ```
 
-Modo demonstração (só em Debug), com vídeos locais no lugar das câmeras e capturas automáticas de tela:
+**Releasing:** `git tag v0.2.0 && git push origin v0.2.0`. The `Release` workflow tests, builds the installer
+(with delta updates from previous versions) and publishes to GitHub Releases, where installed apps update from.
+
+Demo mode (Debug builds only), with local videos instead of cameras and automatic screenshots:
 
 ```bash
-dotnet run --project src/Mirante.App -- --demo <pasta-com-mp4> <pasta-das-capturas>
+dotnet run --project src/Mirante.App -- --demo <folder-with-mp4> <screenshots-folder>
 ```
 
-### Estrutura
+### Layout
 
 ```
-src/Mirante.Core     Regras sem interface: câmeras, validação, RTSP (teste de login), credenciais, layout, persistência
-src/Mirante.App      App WPF (WPF-UI + LibVLCSharp): telas, tiles de vídeo, reconexão
-tests/               Testes (xUnit v3), incluindo câmera RTSP falsa e Gerenciador de Credenciais real
-build/               Empacotamento (Velopack) e arte do instalador
-docs/                Roadmap, decisões de arquitetura (ADR) e capturas
+src/Mirante.Core     UI-free logic: cameras, validation, RTSP (login test), credentials, layout, persistence
+src/Mirante.App      WPF app (WPF-UI + LibVLCSharp): windows, video tiles, reconnection, audio, updates
+tests/               Tests (xUnit v3), including a fake RTSP camera and the real Credential Manager
+build/               Packaging (Velopack) and installer art
+docs/                Roadmap, architecture decisions (ADR) and screenshots
 ```
 
-Decisão de stack: [docs/adr/0001-stack.md](docs/adr/0001-stack.md).
+Stack decision: [docs/adr/0001-stack.md](docs/adr/0001-stack.md).
 
-## Licença
+## License
 
-[MIT](LICENSE) © 2026 Sanfado. O instalador inclui componentes de terceiros sob as próprias
-licenças (LibVLC/FFmpeg em LGPL, WPF-UI, Velopack etc.): veja [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[MIT](LICENSE) © 2026 Sanfado. The installer bundles third-party components under their own licenses
+(LibVLC/FFmpeg under LGPL, WPF-UI, Velopack, etc.): see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
