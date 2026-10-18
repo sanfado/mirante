@@ -20,7 +20,7 @@
 - [x] Atualização automática: baixa em segundo plano, instala só com clique (testado de 0.1.0 a 0.1.3 com feed local)
 - [x] Workflow de release por tag (instalador + delta + GitHub Releases)
 - [x] VLC enxuto: só os plugins usados (101 → 26 MB), sem componentes GPL desnecessários
-- [ ] Atualização pelo GitHub funcionando para os usuários (depende do repositório público)
+- [x] Repositório público e atualização pelo GitHub funcionando para os usuários (2026-10-17)
 
 ## Próximas versões (propostas, a conversar)
 
@@ -44,12 +44,12 @@
    com uma solução segura (ex.: VPN como Tailscale, nunca abrir portas)?
 6. **Idioma** do código/README quando público (hoje: código em inglês, interface em pt-BR).
 
-## Checklist obrigatório antes de tornar público
+## Checklist para tornar público (concluído)
 
 - [x] Repositório recriado do zero com o histórico limpo (2026-10-17); o antigo virou
       `sanfado/mirante-arquivo` (privado).
 - [x] `sanfado/mirante-arquivo` apagado (2026-10-17).
-- [ ] Nunca reenviar o histórico antigo para este repositório; abrir o código é só mudar a
-      visibilidade deste para público.
+- [x] Código aberto em 2026-10-17 (o histórico antigo nunca foi reenviado).
 - [x] Busca por dados pessoais em todo o histórico, mensagens e imagens: nada encontrado (2026-10-17).
-- [ ] Ativar *private vulnerability reporting* e *secret scanning* no repositório público.
+- [x] Reporte privado de vulnerabilidades, secret scanning com push protection e regras que
+      protegem o histórico do `main` e as tags de versão (2026-10-17).
