@@ -80,7 +80,7 @@ internal static class DemoMode
             viewModel.ToggleAudio(viewModel.Tiles[1]);
             await Task.Delay(2500);
             AudioState($"som em {viewModel.Tiles[1].Name} (a anterior deve silenciar)");
-            Capture(window, output, "01b-som-ligado");
+            RenderElement(window.TitleBar, output, "01b-barra-com-som");
             viewModel.Volume = 3;
             await Task.Delay(800);
             AudioState("volume 3");
@@ -204,11 +204,21 @@ internal static class DemoMode
         CaptureScreenArea(window, folder, name);
     }
 
-    /// <summary>Captures the screen where <paramref name="window"/> is, without bringing it to the front.</summary>
+    /// <summary>
+    /// Captures the screen where <paramref name="window"/> is. Skipped unless one of our windows is in
+    /// the foreground: otherwise it would photograph whatever the user has open on top of it.
+    /// </summary>
     private static void CaptureScreenArea(Window window, string folder, string name)
     {
         window.UpdateLayout();
         var hwnd = new WindowInteropHelper(window).Handle;
+        var foreground = NativeMethods.GetForegroundWindow();
+        if (!Application.Current.Windows.OfType<Window>().Any(w => new WindowInteropHelper(w).Handle == foreground))
+        {
+            File.WriteAllText(Path.Combine(folder, name + ".pulada.txt"), "Janela não estava em primeiro plano; captura pulada.");
+            return;
+        }
+
         _ = NativeMethods.DwmGetWindowAttribute(hwnd, 9 /* DWMWA_EXTENDED_FRAME_BOUNDS */, out var r, Marshal.SizeOf<NativeMethods.Rect>());
         int width = r.Right - r.Left, height = r.Bottom - r.Top;
         var screen = NativeMethods.GetDC(IntPtr.Zero);
@@ -224,6 +234,19 @@ internal static class DemoMode
 
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(source));
+        using var file = File.Create(Path.Combine(folder, name + ".png"));
+        encoder.Save(file);
+    }
+
+    /// <summary>Renders WPF content only (no screen grab, no video): safe while the user uses the PC.</summary>
+    private static void RenderElement(FrameworkElement element, string folder, string name)
+    {
+        var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(element);
+        var bitmap = new RenderTargetBitmap((int)(element.ActualWidth * dpi.DpiScaleX), (int)(element.ActualHeight * dpi.DpiScaleY),
+            dpi.PixelsPerInchX, dpi.PixelsPerInchY, System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(element);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var file = File.Create(Path.Combine(folder, name + ".png"));
         encoder.Save(file);
     }
@@ -249,6 +272,10 @@ internal static class DemoMode
             public int Right;
             public int Bottom;
         }
+
+        [DllImport("user32.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern IntPtr GetForegroundWindow();
 
         [DllImport("dwmapi.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

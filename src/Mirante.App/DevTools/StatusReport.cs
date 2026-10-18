@@ -42,7 +42,12 @@ internal static class StatusReport
                 File.Delete(path);
             }
 
-            lines.Add($"câmera {i + 1}: status={tile.Status} foto={(accepted && size > 0 ? $"ok ({size / 1024} KB)" : "falhou")}");
+            // AudioTrackCount includes VLC's "disabled" entry; decoding happens even while muted.
+            var player = tile.Stream.Player;
+            var audio = player.AudioTrackCount > 1
+                ? $"sim ({player.Media?.Statistics.DecodedAudio ?? 0} blocos decodificados, mudo={player.Mute})"
+                : "câmera não envia áudio";
+            lines.Add($"câmera {i + 1}: status={tile.Status} foto={(accepted && size > 0 ? $"ok ({size / 1024} KB)" : "falhou")} áudio={audio}");
         }
 
         return lines;
