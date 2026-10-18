@@ -13,7 +13,7 @@
   <img src="docs/screenshots/mosaico.png" width="760" alt="Mosaico de câmeras (vídeos de demonstração)" />
 </p>
 
-> **Status:** MVP (0.1) em desenvolvimento, repositório privado. Ver [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status:** versão 0.1 (primeiras versões públicas). Baixe o instalador em [Releases](https://github.com/sanfado/mirante/releases). Próximos passos em [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## O que faz
 
