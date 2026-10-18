@@ -75,13 +75,41 @@
                                        Command="{Binding MuteAllCommand}" />
                             <TextBlock Margin="2,0,10,0" VerticalAlignment="Center" FontSize="12.5"
                                        Text="{Binding AudioTile.Name}" />
-                            <Slider x:Name="VolumeSlider" Width="110" VerticalAlignment="Center" ToolTip="Volume"
-                                    Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True"
+                            <!-- 0 a 200%: acima de 100% o app amplifica (o número fica em cor de alerta) -->
+                            <Slider x:Name="VolumeSlider" Width="130" VerticalAlignment="Center"
+                                    ToolTip="Volume (acima de 100% o Mirante amplifica o som da câmera)"
+                                    Minimum="0" Maximum="200" TickFrequency="1" IsSnapToTickEnabled="True"
                                     SmallChange="5" LargeChange="10" IsMoveToPointEnabled="True"
                                     Value="{Binding Volume, Mode=TwoWay}" />
-                            <TextBlock Width="26" Margin="6,0,0,0" VerticalAlignment="Center" TextAlignment="Right"
-                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Text="{Binding Volume}" />
+                            <TextBlock Width="40" Margin="6,0,0,0" VerticalAlignment="Center" TextAlignment="Right"
+                                       FontSize="12" Text="{Binding Volume, StringFormat={}{0}%}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsAmplified}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <ui:Button x:Name="VoiceBoostButton" Margin="8,0,0,0" Height="26" Padding="8,0"
+                                       Icon="{ui:SymbolIcon PersonVoice24}" Content="Realçar voz" FontSize="12"
+                                       ToolTip="Deixa a fala mais clara: corta zumbido e graves e realça a faixa da voz"
+                                       Command="{Binding ToggleVoiceBoostCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Setter Property="Appearance" Value="Transparent" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding VoiceBoost}" Value="True">
+                                                <Setter Property="Appearance" Value="Primary" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
                         </StackPanel>
                     </Border>
                     <!-- Câmeras abertas em janelas separadas: clique para trazer de volta -->

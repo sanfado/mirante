@@ -75,7 +75,12 @@ internal static class DemoMode
             }
         }
 
-        viewModel.Volume = 5;
+        // Silent on purpose (may run while someone sleeps nearby): every camera at 0%.
+        foreach (var tile in viewModel.Tiles)
+        {
+            tile.Stream.UpdateAudioSettings(tile.Stream.Config with { Volume = 0 });
+        }
+
         await Task.Delay(2000);
         AudioState("início (todas mudas)");
         viewModel.ToggleAudio(viewModel.Tiles[0]);
@@ -87,13 +92,36 @@ internal static class DemoMode
             await Task.Delay(2500);
             AudioState($"som em {viewModel.Tiles[1].Name} (a anterior deve silenciar)");
             RenderElement(window.TitleBar, output, "01b-barra-com-som");
-            viewModel.Volume = 3;
+            viewModel.Volume = 0;
             await Task.Delay(800);
-            AudioState("volume 3");
+            AudioState("volume 0");
             viewModel.ToggleAudio(viewModel.Tiles[1]);
             await Task.Delay(800);
             AudioState("som desligado");
         }
+
+        // Volume above 100% and "Realçar voz", tested on a MUTED camera (no sound at all):
+        // the player stays at 100 and the rest becomes equalizer pre-amplification, live.
+        if (viewModel.Tiles.Count > 2)
+        {
+            var boosted = viewModel.Tiles[2];
+            boosted.Stream.UpdateAudioSettings(boosted.Stream.Config with { Volume = 180, VoiceBoost = true });
+            await Task.Delay(1500);
+            audio.Add($"-- {boosted.Name} muda, volume 180% + realçar voz: {boosted.Stream.AudioState} status={boosted.Status}");
+            boosted.Stream.UpdateAudioSettings(boosted.Stream.Config with { Volume = 100, VoiceBoost = false });
+            await Task.Delay(1500);
+            audio.Add($"-- {boosted.Name} de volta a 100% sem realce: {boosted.Stream.AudioState} status={boosted.Status}");
+        }
+
+        // The controls follow the camera that plays (its own saved settings), still silent.
+        viewModel.ToggleAudio(viewModel.Tiles[0]);
+        viewModel.VoiceBoost = true;
+        await Task.Delay(1500);
+        audio.Add($"-- realçar voz pela barra em {viewModel.Tiles[0].Name}: config.voz={viewModel.Tiles[0].Stream.Config.VoiceBoost} {viewModel.Tiles[0].Stream.AudioState} status={viewModel.Tiles[0].Status}");
+        RenderElement(window.TitleBar, output, "01b-barra-realcar-voz");
+        viewModel.VoiceBoost = false;
+        viewModel.AudioTile = null;
+        await Task.Delay(3000);
 
         File.WriteAllLines(Path.Combine(output, "00-audio.txt"), audio);
 

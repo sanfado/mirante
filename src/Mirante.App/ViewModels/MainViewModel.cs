@@ -56,8 +56,18 @@ internal sealed partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasAudioTile))]
     private CameraTileViewModel? _audioTile;
 
+    /// <summary>Volume (0–200%) of the camera that is playing; saved per camera.</summary>
     [ObservableProperty]
-    private int _volume = AppSettings.DefaultVolume;
+    [NotifyPropertyChangedFor(nameof(IsAmplified))]
+    private int _volume = AudioBoost.DefaultVolume;
+
+    /// <summary>"Realçar voz" of the camera that is playing; saved per camera.</summary>
+    [ObservableProperty]
+    private bool _voiceBoost;
+
+    private readonly DispatcherTimer _saveSoon;
+    private bool _syncingAudio;
+    private int _defaultVolume = AudioBoost.DefaultVolume;
 
     public MainViewModel(CameraRepository cameras, ICredentialStore credentials, VideoEngine engine,
         Func<string> snapshotFolder, Dispatcher dispatcher)
@@ -67,6 +77,12 @@ internal sealed partial class MainViewModel : ObservableObject
         _engine = engine;
         _dispatcher = dispatcher;
         SnapshotFolder = snapshotFolder;
+        _saveSoon = new DispatcherTimer(DispatcherPriority.Background, dispatcher) { Interval = TimeSpan.FromMilliseconds(600) };
+        _saveSoon.Tick += (_, _) =>
+        {
+            _saveSoon.Stop();
+            Save();
+        };
         foreach (var config in cameras.Load())
         {
             Tiles.Add(CreateTile(config));
@@ -88,6 +104,23 @@ internal sealed partial class MainViewModel : ObservableObject
 
     public bool HasAudioTile => AudioTile is not null;
 
+    /// <summary>Above 100%: the app is amplifying (shown in a warning color).</summary>
+    public bool IsAmplified => Volume > 100;
+
+    /// <summary>Volume for cameras without their own (from older settings).</summary>
+    public int DefaultVolume
+    {
+        get => _defaultVolume;
+        set
+        {
+            _defaultVolume = AudioBoost.Clamp(value);
+            foreach (var tile in Tiles)
+            {
+                tile.Stream.DefaultVolume = _defaultVolume;
+            }
+        }
+    }
+
     /// <summary>Turns this camera's sound on (muting any other) or off.</summary>
     public void ToggleAudio(CameraTileViewModel tile) =>
         AudioTile = ReferenceEquals(AudioTile, tile) ? null : tile;
@@ -96,12 +129,39 @@ internal sealed partial class MainViewModel : ObservableObject
     {
         foreach (var tile in Tiles)
         {
-            tile.Stream.SetAudio(ReferenceEquals(tile, value), Volume);
+            tile.Stream.SetAudio(ReferenceEquals(tile, value));
             tile.RefreshAudio();
+        }
+
+        // Show the controls with this camera's own settings.
+        if (value is not null)
+        {
+            _syncingAudio = true;
+            Volume = value.Stream.Volume;
+            VoiceBoost = value.Stream.Config.VoiceBoost;
+            _syncingAudio = false;
         }
     }
 
-    partial void OnVolumeChanged(int value) => AudioTile?.Stream.SetAudio(true, value);
+    partial void OnVolumeChanged(int value) =>
+        UpdateAudioTile(c => c with { Volume = AudioBoost.Clamp(value) });
+
+    partial void OnVoiceBoostChanged(bool value) => UpdateAudioTile(c => c with { VoiceBoost = value });
+
+    private void UpdateAudioTile(Func<CameraConfig, CameraConfig> change)
+    {
+        if (_syncingAudio || AudioTile is null)
+        {
+            return;
+        }
+
+        AudioTile.Stream.UpdateAudioSettings(change(AudioTile.Stream.Config));
+        _saveSoon.Stop(); // dragging the slider: save once it settles
+        _saveSoon.Start();
+    }
+
+    [RelayCommand]
+    private void ToggleVoiceBoost() => VoiceBoost = !VoiceBoost;
 
     [RelayCommand]
     private void MuteAll() => AudioTile = null;
@@ -309,7 +369,7 @@ internal sealed partial class MainViewModel : ObservableObject
     }
 
     private CameraTileViewModel CreateTile(CameraConfig config) =>
-        new(new CameraStream(config, _engine, _credentials, _dispatcher), this);
+        new(new CameraStream(config, _engine, _credentials, _dispatcher) { DefaultVolume = _defaultVolume }, this);
 
     private void OnTilesChanged()
     {

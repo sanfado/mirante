@@ -46,7 +46,6 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     private DateTime _startedAt;
     private int _attempt;
     private bool _audioOn;
-    private int _volume = 80;
     private bool _paused;
     private bool _playerDisposed; // only read/written while holding _playerGate
     private Task? _shutdown;
@@ -122,25 +121,62 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
         _ = RestartAsync();
     }
 
+    /// <summary>Volume for cameras that don't have their own yet (the app's default).</summary>
+    public int DefaultVolume { get; set; } = AudioBoost.DefaultVolume;
+
+    /// <summary>This camera's volume, 0–200%.</summary>
+    public int Volume => AudioBoost.Clamp(Config.Volume ?? DefaultVolume);
+
+    /// <summary>What was last applied to the player (for diagnostics and tests).</summary>
+    public string AudioState { get; private set; } = string.Empty;
+
     /// <summary>
-    /// Every camera starts muted (the player is created muted); only the one the user picks plays,
-    /// at <paramref name="volume"/> (0–100). Re-applied whenever the video (re)starts.
+    /// Every camera starts muted (the player is created muted); only the one the user picks plays.
+    /// Re-applied whenever the video (re)starts.
     /// </summary>
-    public void SetAudio(bool on, int volume)
+    public void SetAudio(bool on)
     {
         _audioOn = on;
-        _volume = Math.Clamp(volume, 0, 100);
+        ApplyAudio();
+    }
+
+    /// <summary>Applies new volume / "Realçar voz" settings, live (no reconnection).</summary>
+    public void UpdateAudioSettings(CameraConfig config)
+    {
+        Config = config;
         ApplyAudio();
     }
 
     private void ApplyAudio()
     {
         var mute = !_audioOn;
-        var volume = _volume;
+        var volume = Volume;
+        var voice = Config.VoiceBoost;
+        var (playerVolume, preampDb) = AudioBoost.Split(volume, voice);
+        var useEqualizer = AudioBoost.NeedsEqualizer(volume, voice);
         _ = RunPlayerAsync(() =>
         {
             Player.Mute = mute;
-            Player.Volume = volume;
+            Player.Volume = playerVolume;
+            if (useEqualizer)
+            {
+                // Above 100% the extra gain is a software pre-amplification in the audio chain,
+                // independent of the output device; "Realçar voz" adds the speech curve.
+                using var equalizer = new Equalizer();
+                equalizer.SetPreamp((float)preampDb);
+                for (var band = 0; voice && band < AudioBoost.VoiceBands.Count; band++)
+                {
+                    equalizer.SetAmp((float)AudioBoost.VoiceBands[band], (uint)band);
+                }
+
+                Player.SetEqualizer(equalizer);
+            }
+            else
+            {
+                Player.UnsetEqualizer();
+            }
+
+            AudioState = $"mudo={mute} volume={playerVolume} preamp={preampDb:0.#}dB equalizador={useEqualizer} voz={voice}";
         });
     }
 

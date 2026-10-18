@@ -22,17 +22,27 @@
 - [x] VLC enxuto: só os plugins usados (101 → 26 MB), sem componentes GPL desnecessários
 - [x] Repositório público e atualização pelo GitHub funcionando para os usuários (2026-10-17)
 
+## Feito depois da 0.1
+
+- **0.2.0:** organizar a ordem das câmeras (mosaico e teclas 1–9).
+- **0.2.1:** corrige o app fechando ao excluir uma câmera.
+- **0.3.0:** volume até 200% e “Realçar voz”, salvos por câmera.
+
 ## Próximas versões (propostas, a conversar)
 
-- **0.2 — Conforto:** ~~reorganizar a ordem das câmeras~~ (feito na 0.2.0); layouts salvos (ex.: “Noite”,
-  “Garagem grande”) — definir o que um layout guarda antes de implementar.
+- **Layouts salvos** (ex.: “Noite”, “Garagem grande”) — conversar antes o que um layout guarda.
+- **Controles da câmera (PTZ):** girar/inclinar câmeras como a Tapo C210 pelo app. Estudar:
+  ONVIF (padrão, se a câmera expuser) ou o protocolo próprio da Tapo.
+- **Falar pela câmera** (microfone do PC → alto-falante da câmera) e modo **“chamada”**
+  (conversa contínua), como no app Tapo. Estudar: canal de áudio de volta do ONVIF/RTSP
+  (*backchannel*) e se a Tapo o oferece fora do app dela; latência, eco e segurança.
+- **Nivelador de áudio (compressor):** igualar sons baixos e altos. O VLC 3 não permite
+  compressor e equalizador juntos por câmera; exige o app processar o áudio por conta própria.
+- **Gravação local:** manual e contínua, com limite de espaço e apagamento automático;
+  linha do tempo para rever.
+- **Eventos:** detecção de movimento com aviso do Windows e gravação por evento.
 - **Interface em inglês** (hoje só pt-BR; o README já é bilíngue).
-- **0.3 — PTZ:** (áudio por câmera já feito: uma por vez, com volume); girar a câmera (ONVIF) quando suportado.
-- **0.4 — Gravação local:** gravação manual e contínua com limite de espaço e apagamento
-  automático; linha do tempo para rever.
-- **0.5 — Eventos:** detecção de movimento com aviso do Windows e gravação por evento.
-- **1.0 — Abertura do código:** licença, instalador assinado, i18n (pt-BR/en), site/README
-  em inglês, contribuição.
+- **1.0:** instalador assinado (SignPath), i18n, guia de contribuição.
 
 ## A decidir antes de seguir
 

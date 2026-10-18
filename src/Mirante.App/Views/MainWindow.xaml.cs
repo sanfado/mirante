@@ -41,7 +41,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
         _toastTimer.Tick += (_, _) => HideToast();
 
         _fullscreen.ApplyPlacement(settings.Load().MainWindow);
-        viewModel.Volume = settings.Load().Volume ?? AppSettings.DefaultVolume;
+        viewModel.DefaultVolume = settings.Load().Volume ?? Mirante.Core.Cameras.AudioBoost.DefaultVolume;
         PreviewKeyDown += (_, e) => e.Handled = HandleShortcut(e.Key, Keyboard.Modifiers);
         Closing += OnClosing;
         Loaded += (_, _) => RestoreDetachedWindows();
@@ -267,7 +267,6 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     internal void SaveLayout() => _settings.Save(_settings.Load() with
     {
         MainWindow = _fullscreen.CapturePlacement(),
-        Volume = _viewModel.Volume,
         DetachedWindows = [.. _detached.Select(d => new DetachedWindowState(d.Key.Id, d.Value.Fullscreen.CapturePlacement()))],
     });
 

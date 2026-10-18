@@ -26,7 +26,7 @@
 - **Lembra o layout**: ao reabrir, cada câmera destacada volta ao mesmo monitor, inclusive em tela cheia.
 - **Tela cheia no monitor onde a janela está** (F11), não no monitor principal.
 - **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
-- **Áudio**: um botão de som por câmera, só uma tocando por vez, com volume.
+- **Áudio**: um botão de som por câmera, só uma tocando por vez; volume até 200% e “Realçar voz”, salvos por câmera.
 - **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
 - **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
 - **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.

@@ -22,7 +22,21 @@ internal static class StatusReport
     {
         await Task.Delay(15000);
         var folder = Directory.CreateTempSubdirectory("mirante-status-").FullName;
-        File.WriteAllLines(file, Describe(viewModel, folder, keepSnapshots: false));
+        var lines = Describe(viewModel, folder, keepSnapshots: false).ToList();
+
+        // Volume boost + "Realçar voz" on the real stream, with the camera MUTED (silent) and
+        // restored afterwards without saving.
+        foreach (var (tile, i) in viewModel.Tiles.Select((t, i) => (t, i)))
+        {
+            var original = tile.Stream.Config;
+            tile.Stream.UpdateAudioSettings(original with { Volume = 180, VoiceBoost = true });
+            await Task.Delay(3000);
+            lines.Add($"câmera {i + 1}: 180% + realçar voz (muda): {tile.Stream.AudioState} status={tile.Status}");
+            tile.Stream.UpdateAudioSettings(original);
+        }
+
+        await Task.Delay(1000);
+        File.WriteAllLines(file, lines);
         Directory.Delete(folder, recursive: true);
         Application.Current.Shutdown();
     }

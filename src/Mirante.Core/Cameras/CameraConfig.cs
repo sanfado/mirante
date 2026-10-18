@@ -16,6 +16,12 @@ public sealed record CameraConfig
     public int Port { get; init; } = DefaultRtspPort;
     public string StreamPath { get; init; } = HighQualityStream;
 
+    /// <summary>Sound volume 0–200% (above 100 the app amplifies). Null = the app's default.</summary>
+    public int? Volume { get; init; }
+
+    /// <summary>"Realçar voz": compressor + speech equalization for hard-to-hear camera audio.</summary>
+    public bool VoiceBoost { get; init; }
+
     public static CameraConfig CreateNew(string name, string host, int port = DefaultRtspPort,
         string streamPath = HighQualityStream) =>
         new() { Id = Guid.NewGuid(), Name = name, Host = host, Port = port, StreamPath = streamPath };

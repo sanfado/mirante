@@ -27,7 +27,7 @@
 - **Remembers the layout**: on reopen, each popped-out camera returns to the same monitor, fullscreen included.
 - **Fullscreen on the monitor the window is on** (F11), not on the primary monitor.
 - **Focus**: double-click or keys `1`–`9` to show one camera large; `Esc` goes back.
-- **Audio**: a sound button per camera, one playing at a time, with volume.
+- **Audio**: a sound button per camera, one playing at a time; volume up to 200% and "voice boost" (speech EQ), saved per camera.
 - **Snapshots** (`F` or the camera's button) saved locally to `Pictures\Mirante`, outside OneDrive.
 - **Automatic reconnection** with diagnosis: tells "password rejected" apart from "camera offline".
 - **Connection test** when adding a camera: checks IP, port and password before saving.

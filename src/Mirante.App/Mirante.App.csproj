@@ -47,7 +47,7 @@
     <!-- Áudio da câmera (G.711/AAC/PCM), mixagem, conversão e saída pelo Windows -->
     <VlcWindowsX64IncludeFiles Include="plugins\audio_output\libmmdevice_plugin.dll;plugins\audio_output\libwasapi_plugin.dll;plugins\audio_output\libdirectsound_plugin.dll;plugins\audio_output\libwaveout_plugin.dll;plugins\audio_output\libadummy_plugin.dll" />
     <VlcWindowsX64IncludeFiles Include="plugins\audio_mixer\%2A" />
-    <VlcWindowsX64IncludeFiles Include="plugins\audio_filter\libaudio_format_plugin.dll;plugins\audio_filter\libspeex_resampler_plugin.dll;plugins\audio_filter\libugly_resampler_plugin.dll;plugins\audio_filter\libtrivial_channel_mixer_plugin.dll;plugins\audio_filter\libsimple_channel_mixer_plugin.dll;plugins\audio_filter\libremap_plugin.dll;plugins\audio_filter\libscaletempo_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_filter\libequalizer_plugin.dll;plugins\audio_filter\libaudio_format_plugin.dll;plugins\audio_filter\libspeex_resampler_plugin.dll;plugins\audio_filter\libugly_resampler_plugin.dll;plugins\audio_filter\libtrivial_channel_mixer_plugin.dll;plugins\audio_filter\libsimple_channel_mixer_plugin.dll;plugins\audio_filter\libremap_plugin.dll;plugins\audio_filter\libscaletempo_plugin.dll" />
     <VlcWindowsX64IncludeFiles Include="plugins\codec\libg711_plugin.dll;plugins\codec\libaraw_plugin.dll;plugins\codec\liblpcm_plugin.dll;plugins\codec\libadpcm_plugin.dll" />
     <VlcWindowsX64IncludeFiles Include="plugins\packetizer\libpacketizer_mpeg4audio_plugin.dll;plugins\packetizer\libpacketizer_mpegaudio_plugin.dll" />
     <!-- Cofre de senhas só em memória (opção keystore=memory) -->
