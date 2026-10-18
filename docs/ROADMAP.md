@@ -48,9 +48,8 @@
 
 - [x] Repositório recriado do zero com o histórico limpo (2026-10-17); o antigo virou
       `sanfado/mirante-arquivo` (privado).
-- [ ] **Apagar `sanfado/mirante-arquivo`**: ele ainda guarda os commits antigos com dados pessoais.
+- [x] `sanfado/mirante-arquivo` apagado (2026-10-17).
 - [ ] Nunca reenviar o histórico antigo para este repositório; abrir o código é só mudar a
       visibilidade deste para público.
-- [ ] Rodar a busca por dados pessoais (IPs da rede de casa, nomes, usuários de câmera) em
-      todo o histórico e nas capturas de tela.
+- [x] Busca por dados pessoais em todo o histórico, mensagens e imagens: nada encontrado (2026-10-17).
 - [ ] Ativar *private vulnerability reporting* e *secret scanning* no repositório público.
