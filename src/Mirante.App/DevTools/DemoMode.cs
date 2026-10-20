@@ -151,7 +151,8 @@ internal static class DemoMode
             live.Ptz.SimulateForDemo(); // a camera with zoom
             await Task.Delay(500);
             RenderElement(tileView.Overlay, output, "01f-setas-ptz-com-zoom");
-            var nameDialog = new PositionNameWindow(live.Name, "Posição 1") { Owner = window };
+            var nameDialog = new NameWindow("Salvar posição", $"Guarda para onde “{live.Name}” está apontando agora.",
+                "Ex.: Porta, Sofá, Janela", "Posição 1") { Owner = window };
             nameDialog.Show();
             await Task.Delay(800);
             RenderElement((FrameworkElement)nameDialog.Content, output, "01g-salvar-posicao");
@@ -164,6 +165,41 @@ internal static class DemoMode
         {
             Application.Current.Shutdown();
             return;
+        }
+
+        // Layouts: save "Noite" (one camera left out, another in focus), mess up the screen, apply it
+        // back with Ctrl+1, then show every camera again.
+        if (viewModel.Tiles.Count > 2)
+        {
+            var log = new List<string>();
+            var leftOut = viewModel.Tiles[^1];
+            viewModel.FocusByNumber(1);
+            var focused = viewModel.FocusedTile;
+            var noite = await window.CaptureLayoutAsync(Guid.NewGuid(), "Noite", new HashSet<Guid> { leftOut.Id }, includePositions: false);
+            window.StoreLayout(noite);
+            viewModel.FocusByNumber(0);
+            viewModel.ToggleDetach(viewModel.Tiles[1]);
+            await Task.Delay(2500);
+            log.Add($"antes: foco={viewModel.FocusedTile?.Name ?? "-"} destacadas={viewModel.DetachedTiles.Count}");
+            log.Add($"Ctrl+1 tratado={window.HandleShortcut(Key.D1, ModifierKeys.Control)}");
+            await Task.Delay(3500);
+            log.Add($"depois: foco={viewModel.FocusedTile?.Name ?? "-"} (esperado {focused?.Name})");
+            log.Add($"destacadas={viewModel.DetachedTiles.Count} (esperado 0)");
+            log.Add($"fora do layout: {leftOut.Name} excluída={leftOut.IsExcluded} status={leftOut.Status} (esperado Idle) chip=\"{viewModel.HiddenLabel}\"");
+            log.Add($"no mosaico: {string.Join(", ", viewModel.Tiles.Where(t => t.IsVisibleInGrid).Select(t => $"{t.Name}={t.Status}"))}");
+            log.Add($"salvo: {string.Join(", ", settings.Load().Layouts.Select(l => l.Name))}");
+            RenderElement(window.TitleBar, output, "01h-barra-layouts");
+            viewModel.FocusByNumber(0);
+            viewModel.SetExcluded([]);
+            await Task.Delay(5000);
+            log.Add($"mostrar todas: {leftOut.Name} excluída={leftOut.IsExcluded} status={leftOut.Status} chip visível={viewModel.HasHiddenCameras}");
+            File.WriteAllLines(Path.Combine(output, "00-layouts.txt"), log);
+
+            var saveDialog = new SaveLayoutWindow(viewModel.Tiles.Select(t => (t.Id, t.Name, t != leftOut)), "Layout 2", anyPtz: true) { Owner = window };
+            saveDialog.Show();
+            await Task.Delay(800);
+            RenderElement((FrameworkElement)saveDialog.Content, output, "01i-salvar-layout");
+            saveDialog.Close();
         }
 
         viewModel.FocusByNumber(1);
@@ -353,7 +389,18 @@ internal static class DemoMode
         var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(element);
         var bitmap = new RenderTargetBitmap((int)(element.ActualWidth * dpi.DpiScaleX), (int)(element.ActualHeight * dpi.DpiScaleY),
             dpi.PixelsPerInchX, dpi.PixelsPerInchY, System.Windows.Media.PixelFormats.Pbgra32);
-        bitmap.Render(element);
+
+        // Mica and the video are not WPF content: paint the dark theme's background behind the element
+        // so light text stays readable in the picture.
+        var bounds = new Rect(0, 0, element.ActualWidth, element.ActualHeight);
+        var visual = new System.Windows.Media.DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x20, 0x20, 0x20)), null, bounds);
+            dc.DrawRectangle(new System.Windows.Media.VisualBrush(element) { Stretch = System.Windows.Media.Stretch.None }, null, bounds);
+        }
+
+        bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var file = File.Create(Path.Combine(folder, name + ".png"));

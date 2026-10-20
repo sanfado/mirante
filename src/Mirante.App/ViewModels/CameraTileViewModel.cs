@@ -27,6 +27,11 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsVisibleInGrid))]
     private bool _isHiddenByFocus;
 
+    /// <summary>Left out by the layout in use: not shown and paused (no decoding, no network).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsVisibleInGrid))]
+    private bool _isExcluded;
+
     /// <summary>Pan/tilt mode is on (arrow keys move the camera too).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowPtzPad))]
@@ -67,7 +72,7 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     public string Name => Stream.Config.Name;
 
-    public bool IsVisibleInGrid => !IsDetached && !IsHiddenByFocus;
+    public bool IsVisibleInGrid => !IsDetached && !IsHiddenByFocus && !IsExcluded;
 
     public bool IsFocused => ReferenceEquals(_owner.FocusedTile, this);
 
@@ -136,6 +141,19 @@ internal sealed partial class CameraTileViewModel : ObservableObject
         OnPropertyChanged(nameof(ProblemMessage));
         Ptz.Reset(); // address or password may have changed; look again once live
         DetectPtz();
+    }
+
+    partial void OnIsExcludedChanged(bool value)
+    {
+        if (value)
+        {
+            IsPtzMode = false;
+            Stream.Pause();
+        }
+        else
+        {
+            Stream.Resume();
+        }
     }
 
     partial void OnIsPtzModeChanged(bool value)

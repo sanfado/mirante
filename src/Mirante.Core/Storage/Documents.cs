@@ -20,10 +20,67 @@ public enum AppTheme
 
 /// <summary>Normal (non-fullscreen) bounds of a window, plus whether it was maximized or fullscreen.</summary>
 public sealed record WindowPlacement(double Left, double Top, double Width, double Height, bool IsMaximized,
-    bool IsFullscreen = false);
+    bool IsFullscreen = false)
+{
+    /// <summary>Finite, positive size; a hand-edited file could hold anything.</summary>
+    public bool IsValid =>
+        double.IsFinite(Left) && double.IsFinite(Top) && double.IsFinite(Width) && double.IsFinite(Height)
+        && Width > 0 && Height > 0;
+}
 
 /// <summary>A camera that was open in its own window when the app closed.</summary>
 public sealed record DetachedWindowState(Guid CameraId, WindowPlacement Placement);
+
+/// <summary>Where a PTZ camera points in a layout (it turns there when the layout is applied).</summary>
+public sealed record LayoutCameraPosition(Guid CameraId, double Pan, double Tilt, double? Zoom = null);
+
+/// <summary>
+/// A saved arrangement of the screen, e.g. "Noite": the windows (main and detached), the camera in
+/// focus, the cameras left out and, optionally, where PTZ cameras point. Sound, volume and the
+/// mosaic order are deliberately not part of it.
+/// </summary>
+public sealed record LayoutPreset
+{
+    public const int MaxNameLength = 40;
+    public const int MaxCount = 20;
+
+    public required Guid Id { get; init; }
+    public required string Name { get; init; }
+    public WindowPlacement? MainWindow { get; init; }
+    public List<DetachedWindowState> DetachedWindows { get; init; } = [];
+    public Guid? FocusedCamera { get; init; }
+
+    /// <summary>
+    /// Cameras left out (paused while the layout is on). The excluded ones are stored, not the
+    /// included ones, so a camera added later shows up in every layout instead of being hidden.
+    /// </summary>
+    public List<Guid> ExcludedCameras { get; init; } = [];
+
+    /// <summary>Null: applying the layout doesn't move any camera.</summary>
+    public List<LayoutCameraPosition>? CameraPositions { get; init; }
+
+    /// <summary>A clean copy of a layout read from disk, or null if it can't be used.</summary>
+    internal LayoutPreset? Normalized()
+    {
+        if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Trim().Length > MaxNameLength)
+        {
+            return null;
+        }
+
+        return this with
+        {
+            Name = Name.Trim(),
+            MainWindow = MainWindow is { IsValid: true } ? MainWindow : null,
+            DetachedWindows = [.. (DetachedWindows ?? [])
+                .Where(d => d is { Placement.IsValid: true })
+                .DistinctBy(d => d.CameraId)],
+            ExcludedCameras = [.. (ExcludedCameras ?? []).Distinct()],
+            CameraPositions = CameraPositions is null ? null : [.. CameraPositions
+                .Where(p => p is not null && new Cameras.CameraPosition("x", p.Pan, p.Tilt, p.Zoom).IsValid)
+                .DistinctBy(p => p.CameraId)],
+        };
+    }
+}
 
 public sealed record AppSettings
 {
@@ -50,6 +107,11 @@ public sealed record AppSettings
 
     /// <summary>Audio volume 0–100. Nullable so files written before it existed get the default, not 0.</summary>
     public int? Volume { get; init; }
+
+    public List<LayoutPreset> Layouts { get; init; } = [];
+
+    /// <summary>Cameras left out by the layout in use (paused), so the app reopens as it was left.</summary>
+    public List<Guid> HiddenCameras { get; init; } = [];
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true,

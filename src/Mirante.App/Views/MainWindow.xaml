@@ -29,6 +29,9 @@
             <tray:NotifyIcon.Menu>
                 <ContextMenu>
                     <MenuItem Header="Abrir o Mirante" Icon="{ui:SymbolIcon Open24}" Click="OnTrayOpenClick" />
+                    <MenuItem x:Name="TrayLayouts" Header="Layouts" Icon="{ui:SymbolIcon Grid24}" SubmenuOpened="OnTrayLayoutsOpened">
+                        <MenuItem Header="…" IsEnabled="False" />
+                    </MenuItem>
                     <Separator />
                     <MenuItem Header="Sair" Icon="{ui:SymbolIcon Dismiss24}" Click="OnTrayExitClick" />
                 </ContextMenu>
@@ -129,6 +132,16 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <!-- Câmeras fora do layout em uso (pausadas): clique para mostrar todas -->
+                    <ui:Button Style="{StaticResource TitleBarButton}" Appearance="Secondary"
+                               Icon="{ui:SymbolIcon EyeOff24}" Content="{Binding HiddenLabel}"
+                               ToolTip="Câmeras fora deste layout (pausadas). Clique para mostrar todas."
+                               Click="OnHiddenCamerasClick"
+                               Visibility="{Binding HasHiddenCameras, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:Button x:Name="LayoutsButton" Style="{StaticResource TitleBarButton}" Appearance="Secondary"
+                               Icon="{ui:SymbolIcon Grid24}" Content="Layouts" ToolTip="Layouts salvos (Ctrl+1 a Ctrl+9)"
+                               Click="OnLayoutsClick"
+                               Visibility="{Binding HasCameras, Converter={StaticResource BoolToVisibility}}" />
                     <ui:Button Style="{StaticResource TitleBarButton}" Appearance="Primary" Margin="8,0,4,0"
                                Icon="{ui:SymbolIcon Add24}" Content="Adicionar câmera"
                                Command="{Binding AddCameraCommand}" ToolTip="Adicionar câmera (Ctrl+N)" />

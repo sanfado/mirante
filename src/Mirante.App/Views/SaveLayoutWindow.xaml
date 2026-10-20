@@ -1,0 +1,68 @@
+<ui:FluentWindow x:Class="Mirante.App.Views.SaveLayoutWindow"
+                 x:ClassModifier="internal"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Salvar layout"
+                 Width="460" SizeToContent="Height"
+                 ResizeMode="NoResize"
+                 ShowInTaskbar="False"
+                 WindowStartupLocation="CenterOwner"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Height="36" ShowMaximize="False" ShowMinimize="False" />
+
+        <StackPanel Grid.Row="1" Margin="28,0,28,24">
+            <TextBlock FontSize="22" FontWeight="SemiBold" Text="Salvar layout" />
+            <TextBlock Margin="0,4,0,16" FontSize="13" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="Guarda a tela como está agora: as janelas (posição, monitor, tela cheia) e a câmera em foco. O som nunca muda ao trocar de layout." />
+
+            <ui:TextBox x:Name="NameBox" MaxLength="40" PlaceholderText="Ex.: Noite, Dia, Garagem grande"
+                        TextChanged="OnChanged" />
+
+            <TextBlock Margin="0,18,0,6" FontSize="13" FontWeight="SemiBold" Text="Câmeras neste layout" />
+            <Border Padding="12,6" CornerRadius="8"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="CameraList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Margin="0,2" Content="{Binding Name}" IsChecked="{Binding Included}"
+                                          Checked="OnChanged" Unchecked="OnChanged" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+            <TextBlock Margin="0,6,0,0" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="As desmarcadas ficam pausadas enquanto o layout estiver ativo. Câmeras adicionadas depois entram em todos os layouts." />
+
+            <CheckBox x:Name="PositionsCheck" Margin="0,16,0,0" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" Text="Também guardar para onde as câmeras giratórias apontam" />
+            </CheckBox>
+            <TextBlock x:Name="PositionsHint" Margin="28,2,0,0" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="Ao ativar o layout, elas giram até essa posição." />
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="28,16" Background="{DynamicResource LayerFillColorAltBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <ui:Button Appearance="Secondary" Content="Cancelar" MinWidth="96" IsCancel="True" />
+                <ui:Button x:Name="SaveButton" Margin="8,0,0,0" Appearance="Primary" Content="Salvar layout" MinWidth="110"
+                           IsDefault="True" Click="OnSaveClick" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

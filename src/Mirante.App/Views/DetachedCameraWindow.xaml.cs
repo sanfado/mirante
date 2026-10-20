@@ -27,6 +27,13 @@ internal sealed partial class DetachedCameraWindow : FluentWindow, IShortcutHost
 
     public bool HandleShortcut(Key key, ModifierKeys modifiers)
     {
+        if (modifiers == ModifierKeys.Control)
+        {
+            // Ctrl+1–9 (layouts), Ctrl+N: the main window's shortcuts work from here too.
+            return Application.Current.Windows.OfType<MainWindow>().FirstOrDefault() is { } main
+                   && main.HandleShortcut(key, modifiers);
+        }
+
         if (modifiers != ModifierKeys.None)
         {
             return false;

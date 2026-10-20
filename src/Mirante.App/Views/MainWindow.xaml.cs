@@ -41,6 +41,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
         _toastTimer.Tick += (_, _) => HideToast();
 
         _fullscreen.ApplyPlacement(settings.Load().MainWindow);
+        viewModel.SetExcluded(settings.Load().HiddenCameras); // as the last layout left it
         viewModel.DefaultVolume = settings.Load().Volume ?? Mirante.Core.Cameras.AudioBoost.DefaultVolume;
         PreviewKeyDown += (_, e) => e.Handled = HandleShortcut(e.Key, Keyboard.Modifiers);
         Closing += OnClosing;
@@ -122,7 +123,9 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     {
         // Over the window the camera is in (a detached one, if that's where the user clicked).
         Window owner = Application.Current.Windows.OfType<DetachedCameraWindow>().FirstOrDefault(w => w.IsActive) ?? (Window)this;
-        var window = new PositionNameWindow(cameraName, suggestion) { Owner = owner };
+        var window = new NameWindow("Salvar posição",
+            $"Guarda para onde “{cameraName}” está apontando agora. Depois é só escolher o nome em Posições para voltar.",
+            "Ex.: Porta, Sofá, Janela", suggestion) { Owner = owner };
         return Task.FromResult(window.ShowDialog() == true ? window.Result : null);
     }
 
@@ -178,6 +181,12 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
         if (modifiers == ModifierKeys.Control && key == Key.N)
         {
             _viewModel.AddCameraCommand.Execute(null);
+            return true;
+        }
+
+        if (modifiers == ModifierKeys.Control && key is >= Key.D1 and <= Key.D9 or >= Key.NumPad1 and <= Key.NumPad9)
+        {
+            ApplyLayoutByNumber(key >= Key.NumPad1 ? key - Key.NumPad0 : key - Key.D0);
             return true;
         }
 
@@ -276,6 +285,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     {
         MainWindow = _fullscreen.CapturePlacement(),
         DetachedWindows = [.. _detached.Select(d => new DetachedWindowState(d.Key.Id, d.Value.Fullscreen.CapturePlacement()))],
+        HiddenCameras = [.. _viewModel.Tiles.Where(t => t.IsExcluded).Select(t => t.Id)],
     });
 
     /// <summary>Reopens the cameras that were in their own windows last time, where they were.</summary>
@@ -283,7 +293,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     {
         foreach (var state in _settings.Load().DetachedWindows)
         {
-            if (_viewModel.Tiles.FirstOrDefault(t => t.Id == state.CameraId) is { IsDetached: false } tile)
+            if (_viewModel.Tiles.FirstOrDefault(t => t.Id == state.CameraId) is { IsDetached: false, IsExcluded: false } tile)
             {
                 _pendingPlacements[tile.Id] = state.Placement;
                 _viewModel.ToggleDetach(tile);

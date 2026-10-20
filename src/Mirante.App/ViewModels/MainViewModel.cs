@@ -193,7 +193,47 @@ internal sealed partial class MainViewModel : ObservableObject
         Save();
     }
 
-    public bool AllDetached => Tiles.Count > 0 && Tiles.All(t => t.IsDetached);
+    public bool AllDetached => Tiles.Any(t => t.IsDetached) && Tiles.All(t => t.IsDetached || t.IsExcluded);
+
+    public int HiddenCount => Tiles.Count(t => t.IsExcluded);
+
+    public bool HasHiddenCameras => HiddenCount > 0;
+
+    public string HiddenLabel => HiddenCount == 1 ? "1 oculta" : $"{HiddenCount} ocultas";
+
+    /// <summary>
+    /// Leaves these cameras out of the screen (paused) and brings back all others. Called with the
+    /// layout being applied, or with nothing to show every camera again.
+    /// </summary>
+    public void SetExcluded(IEnumerable<Guid> cameraIds)
+    {
+        var excluded = cameraIds.ToHashSet();
+        foreach (var tile in Tiles)
+        {
+            var leaveOut = excluded.Contains(tile.Id);
+            if (leaveOut && tile.IsDetached)
+            {
+                Shell?.CloseDetached(tile);
+            }
+
+            if (leaveOut && ReferenceEquals(AudioTile, tile))
+            {
+                AudioTile = null;
+            }
+
+            if (leaveOut && ReferenceEquals(FocusedTile, tile))
+            {
+                FocusedTile = null;
+            }
+
+            tile.IsExcluded = leaveOut;
+        }
+
+        UpdateGrid();
+        OnPropertyChanged(nameof(HiddenCount));
+        OnPropertyChanged(nameof(HasHiddenCameras));
+        OnPropertyChanged(nameof(HiddenLabel));
+    }
 
     public string Subtitle => Tiles.Count switch
     {
@@ -279,6 +319,9 @@ internal sealed partial class MainViewModel : ObservableObject
         }
 
         Tiles.Remove(tile);
+        OnPropertyChanged(nameof(HiddenCount));
+        OnPropertyChanged(nameof(HasHiddenCameras));
+        OnPropertyChanged(nameof(HiddenLabel));
         _credentials.Delete(tile.Id);
         Save();
     }
@@ -377,7 +420,7 @@ internal sealed partial class MainViewModel : ObservableObject
     /// <summary>Focus the n-th camera of the mosaic (keyboard 1–9); 0 or out of range clears focus.</summary>
     public void FocusByNumber(int number)
     {
-        var candidates = Tiles.Where(t => !t.IsDetached).ToList();
+        var candidates = Tiles.Where(t => !t.IsDetached && !t.IsExcluded).ToList();
         FocusedTile = number >= 1 && number <= candidates.Count ? candidates[number - 1] : null;
     }
 
@@ -393,7 +436,7 @@ internal sealed partial class MainViewModel : ObservableObject
 
     public void ResumeAll()
     {
-        foreach (var tile in Tiles)
+        foreach (var tile in Tiles.Where(t => !t.IsExcluded))
         {
             tile.Stream.Resume();
         }

@@ -4,13 +4,17 @@ using Wpf.Ui.Controls;
 
 namespace Mirante.App.Views;
 
-/// <summary>Asks for the name of a saved camera position. Plain WPF: no video here.</summary>
-internal sealed partial class PositionNameWindow : FluentWindow
+/// <summary>Asks for a name (saved position, layout). Plain WPF: no video here.</summary>
+internal sealed partial class NameWindow : FluentWindow
 {
-    internal PositionNameWindow(string cameraName, string suggestion)
+    internal NameWindow(string heading, string hint, string placeholder, string suggestion, string saveText = "Salvar")
     {
         InitializeComponent();
-        Hint.Text = $"Guarda para onde “{cameraName}” está apontando agora. Depois é só escolher o nome em Posições para voltar.";
+        Title = heading;
+        Heading.Text = heading;
+        Hint.Text = hint;
+        NameBox.PlaceholderText = placeholder;
+        SaveButton.Content = saveText;
         NameBox.Text = suggestion;
         Loaded += (_, _) =>
         {

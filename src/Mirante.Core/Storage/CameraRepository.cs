@@ -31,7 +31,17 @@ public sealed class SettingsRepository(string filePath)
     /// generator skips property initializers), so they are normalized here.
     /// </summary>
     public AppSettings Load() => _store.Load() is { } settings
-        ? settings with { DetachedWindows = settings.DetachedWindows ?? [] }
+        ? settings with
+        {
+            MainWindow = settings.MainWindow is { IsValid: true } ? settings.MainWindow : null,
+            DetachedWindows = [.. (settings.DetachedWindows ?? []).Where(d => d is { Placement.IsValid: true })],
+            Layouts = [.. (settings.Layouts ?? [])
+                .Select(l => l?.Normalized())
+                .OfType<LayoutPreset>()
+                .DistinctBy(l => l.Id)
+                .Take(LayoutPreset.MaxCount)],
+            HiddenCameras = [.. (settings.HiddenCameras ?? []).Distinct()],
+        }
         : new AppSettings();
 
     public void Save(AppSettings settings) => _store.Save(settings);

@@ -89,15 +89,7 @@ internal sealed class Fullscreen(Window window)
     /// </summary>
     public bool ApplyPlacement(WindowPlacement? placement)
     {
-        if (placement is null || placement.Width < window.MinWidth || placement.Height < window.MinHeight)
-        {
-            return false;
-        }
-
-        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
-            SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
-        var saved = new Rect(placement.Left, placement.Top, placement.Width, placement.Height);
-        if (!screen.IntersectsWith(saved))
+        if (!Fits(placement))
         {
             return false;
         }
@@ -128,6 +120,48 @@ internal sealed class Fullscreen(Window window)
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Moves a window that is already open to a saved placement (a layout), fullscreen included.
+    /// Returns false (and changes nothing) if it would land off-screen.
+    /// </summary>
+    public bool MoveTo(WindowPlacement? placement)
+    {
+        if (!Fits(placement))
+        {
+            return false;
+        }
+
+        Exit();
+        window.WindowState = WindowState.Normal;
+        window.Left = placement.Left;
+        window.Top = placement.Top;
+        window.Width = placement.Width;
+        window.Height = placement.Height;
+        if (placement.IsMaximized)
+        {
+            window.WindowState = WindowState.Maximized;
+        }
+
+        if (placement.IsFullscreen)
+        {
+            Enter();
+        }
+
+        return true;
+    }
+
+    private bool Fits([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] WindowPlacement? placement)
+    {
+        if (placement is not { IsValid: true } || placement.Width < window.MinWidth || placement.Height < window.MinHeight)
+        {
+            return false;
+        }
+
+        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        return screen.IntersectsWith(new Rect(placement.Left, placement.Top, placement.Width, placement.Height));
     }
 
     private Rect CurrentMonitorBounds()
