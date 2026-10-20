@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Xml.Linq;
 
 namespace Mirante.Core.Onvif;
@@ -6,7 +6,7 @@ namespace Mirante.Core.Onvif;
 /// <summary>Pan/tilt position in ONVIF's generic space (both axes −1 to 1).</summary>
 public sealed record PtzPosition(double Pan, double Tilt);
 
-public sealed record PtzCapabilities(bool Continuous, bool Relative, bool Absolute, int MaxPresets);
+public sealed record PtzCapabilities(bool Continuous, bool Relative, bool Absolute, int MaxPresets, bool Zoom = false);
 
 /// <summary>
 /// Pan/tilt control of one camera over ONVIF (e.g. Tapo C200/C210). Only what Mirante needs:
@@ -23,17 +23,35 @@ public sealed class OnvifPtz
     private readonly OnvifClient _client;
     private readonly Uri _service;
 
-    private OnvifPtz(OnvifClient client, Uri service, string profileToken, PtzCapabilities capabilities)
+    private OnvifPtz(OnvifClient client, Uri service, string profileToken, PtzCapabilities capabilities,
+        string manufacturer, string model)
     {
         _client = client;
         _service = service;
         ProfileToken = profileToken;
         Capabilities = capabilities;
+        Manufacturer = manufacturer;
+        Model = model;
     }
 
     public string ProfileToken { get; }
 
     public PtzCapabilities Capabilities { get; }
+
+    public string Manufacturer { get; }
+
+    public string Model { get; }
+
+    /// <summary>
+    /// ONVIF moves both axes at once when asked, and most cameras do. TP-Link Tapo cameras run a
+    /// diagonal as one axis until its end and then the other, so for them it's one direction at a time.
+    /// </summary>
+    public bool SupportsDiagonal => !IsTapo(Manufacturer, Model);
+
+    internal static bool IsTapo(string manufacturer, string model) =>
+        manufacturer.Contains("tp-link", StringComparison.OrdinalIgnoreCase)
+        || manufacturer.Contains("tplink", StringComparison.OrdinalIgnoreCase)
+        || model.StartsWith("Tapo", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Finds the PTZ service and a media profile with PTZ; <c>null</c> if the camera has none.</summary>
     public static async Task<OnvifPtz?> ConnectAsync(OnvifClient client, CancellationToken cancellationToken = default)
@@ -70,22 +88,55 @@ public sealed class OnvifPtz
             Continuous: spaces?.Element(Ns.Tt + "ContinuousPanTiltVelocitySpace") is not null,
             Relative: spaces?.Element(Ns.Tt + "RelativePanTiltTranslationSpace") is not null,
             Absolute: spaces?.Element(Ns.Tt + "AbsolutePanTiltPositionSpace") is not null,
-            MaxPresets: max);
-        return new OnvifPtz(client, ptzService, token, capabilities);
+            MaxPresets: max,
+            Zoom: spaces?.Element(Ns.Tt + "ContinuousZoomVelocitySpace") is not null);
+
+        // Manufacturer and model only adjust behavior (see SupportsDiagonal); optional for cameras.
+        string manufacturer = string.Empty, model = string.Empty;
+        try
+        {
+            var info = await client.CallAsync(client.DeviceService, new XElement(Ns.Tds + "GetDeviceInformation"),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            manufacturer = info.Element(Ns.Tds + "Manufacturer")?.Value.Trim() ?? string.Empty;
+            model = info.Element(Ns.Tds + "Model")?.Value.Trim() ?? string.Empty;
+        }
+        catch (OnvifException ex) when (ex.Kind is OnvifErrorKind.NotSupported or OnvifErrorKind.ProtocolError)
+        {
+        }
+
+        return new OnvifPtz(client, ptzService, token, capabilities, manufacturer, model);
     }
 
-    /// <summary>Starts moving at the given speeds (−1 to 1; positive = right / up).</summary>
-    public Task MoveAsync(double pan, double tilt, CancellationToken cancellationToken = default) =>
-        CallAsync(new XElement(Ns.Tptz + "ContinuousMove",
+    /// <summary>
+    /// Starts moving at the given speeds (−1 to 1; positive = right / up / zoom in). An axis left at
+    /// zero is left out of the request, so a zoom-only move doesn't touch pan/tilt and vice versa.
+    /// </summary>
+    public Task MoveAsync(double pan, double tilt, double zoom = 0, CancellationToken cancellationToken = default)
+    {
+        var velocity = new XElement(Ns.Tptz + "Velocity");
+        if (pan != 0 || tilt != 0 || zoom == 0)
+        {
+            velocity.Add(PanTilt(pan, tilt));
+        }
+
+        if (zoom != 0)
+        {
+            velocity.Add(new XElement(Ns.Tt + "Zoom",
+                new XAttribute(XNamespace.Xmlns + "tt", Ns.Tt.NamespaceName),
+                new XAttribute("x", Number(zoom))));
+        }
+
+        return CallAsync(new XElement(Ns.Tptz + "ContinuousMove",
             Profile(),
-            new XElement(Ns.Tptz + "Velocity", PanTilt(pan, tilt)),
+            velocity,
             new XElement(Ns.Tptz + "Timeout", XmlDuration(MoveTimeout))), cancellationToken);
+    }
 
     public Task StopAsync(CancellationToken cancellationToken = default) =>
         CallAsync(new XElement(Ns.Tptz + "Stop",
             Profile(),
             new XElement(Ns.Tptz + "PanTilt", true),
-            new XElement(Ns.Tptz + "Zoom", false)), cancellationToken);
+            new XElement(Ns.Tptz + "Zoom", Capabilities.Zoom)), cancellationToken);
 
     /// <summary>Moves by a fraction of the full range (−1 to 1 on each axis).</summary>
     public Task StepAsync(double pan, double tilt, CancellationToken cancellationToken = default) =>

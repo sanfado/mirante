@@ -114,22 +114,34 @@
                 <!-- Mover a câmera (PTZ): setas nas bordas, aparecem com o botão "Mover câmera" -->
                 <Grid x:Name="PtzPad" Margin="14,14,14,50"
                       Visibility="{Binding ShowPtzPad, Converter={StaticResource BoolToVisibility}}">
-                    <Border Style="{StaticResource PtzArrow}" Tag="0,1" HorizontalAlignment="Center" VerticalAlignment="Top"
+                    <Border Style="{StaticResource PtzArrow}" Tag="0,1,0" HorizontalAlignment="Center" VerticalAlignment="Top"
                             ToolTip="Para cima (↑)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
                         <ui:SymbolIcon Symbol="ChevronUp24" Style="{StaticResource PtzGlyph}" />
                     </Border>
-                    <Border Style="{StaticResource PtzArrow}" Tag="0,-1" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                    <Border Style="{StaticResource PtzArrow}" Tag="0,-1,0" HorizontalAlignment="Center" VerticalAlignment="Bottom"
                             ToolTip="Para baixo (↓)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
                         <ui:SymbolIcon Symbol="ChevronDown24" Style="{StaticResource PtzGlyph}" />
                     </Border>
-                    <Border Style="{StaticResource PtzArrow}" Tag="-1,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                    <Border Style="{StaticResource PtzArrow}" Tag="-1,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
                             ToolTip="Para a esquerda (←)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
                         <ui:SymbolIcon Symbol="ChevronLeft24" Style="{StaticResource PtzGlyph}" />
                     </Border>
-                    <Border Style="{StaticResource PtzArrow}" Tag="1,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    <Border Style="{StaticResource PtzArrow}" Tag="1,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
                             ToolTip="Para a direita (→)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
                         <ui:SymbolIcon Symbol="ChevronRight24" Style="{StaticResource PtzGlyph}" />
                     </Border>
+                    <!-- Zoom (só em câmeras que informam zoom óptico via ONVIF) -->
+                    <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal"
+                                Visibility="{Binding Ptz.SupportsZoom, Converter={StaticResource BoolToVisibility}}">
+                        <Border Style="{StaticResource PtzArrow}" Tag="0,0,-1" Width="40" Height="40" CornerRadius="20"
+                                ToolTip="Afastar (−)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
+                            <ui:SymbolIcon Symbol="ZoomOut24" Style="{StaticResource PtzGlyph}" FontSize="19" />
+                        </Border>
+                        <Border Style="{StaticResource PtzArrow}" Tag="0,0,1" Width="40" Height="40" CornerRadius="20" Margin="8,0,0,0"
+                                ToolTip="Aproximar (+)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
+                            <ui:SymbolIcon Symbol="ZoomIn24" Style="{StaticResource PtzGlyph}" FontSize="19" />
+                        </Border>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Ações (aparecem ao passar o mouse) -->

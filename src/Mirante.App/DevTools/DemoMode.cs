@@ -148,7 +148,11 @@ internal static class DemoMode
             live.IsPtzMode = true;
             await Task.Delay(800);
             RenderElement(tileView.Overlay, output, "01e-setas-ptz");
+            live.Ptz.SimulateForDemo(); // a camera with zoom
+            await Task.Delay(500);
+            RenderElement(tileView.Overlay, output, "01f-setas-ptz-com-zoom");
             live.IsPtzMode = false;
+            live.Ptz.Reset();
         }
 
         if (viewModel.Tiles.Count == 0)

@@ -1,4 +1,4 @@
-﻿#if DEBUG
+#if DEBUG
 using System.Windows;
 using Mirante.App.ViewModels;
 
@@ -38,7 +38,7 @@ internal static class StatusReport
         // Pan/tilt found over ONVIF (read-only: nothing is moved here).
         foreach (var (tile, i) in viewModel.Tiles.Select((t, i) => (t, i)))
         {
-            lines.Add($"câmera {i + 1}: mover câmera (PTZ) disponível={tile.Ptz.IsAvailable}");
+            lines.Add($"câmera {i + 1}: mover câmera (PTZ) disponível={tile.Ptz.IsAvailable} diagonal={tile.Ptz.SupportsDiagonal} zoom={tile.Ptz.SupportsZoom}");
         }
 
         await Task.Delay(1000);

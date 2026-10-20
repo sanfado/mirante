@@ -196,12 +196,11 @@ internal sealed partial class CameraTile : UserControl
             return;
         }
 
-        var parts = tag.Split(',');
-        var pan = double.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
-        var tilt = double.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
+        var v = tag.Split(',').Select(p => double.Parse(p, System.Globalization.CultureInfo.InvariantCulture)
+            * Mirante.App.Video.CameraPtz.Speed).ToArray();
         arrow.CaptureMouse();
         arrow.Background = (System.Windows.Media.Brush)FindResource("PtzArrowPressed");
-        _tile.Ptz.StartMove(pan * Mirante.App.Video.CameraPtz.Speed, tilt * Mirante.App.Video.CameraPtz.Speed);
+        _tile.Ptz.StartMove(v[0], v[1], v[2]);
         e.Handled = true; // not a double-click on the video
     }
 
@@ -217,46 +216,66 @@ internal sealed partial class CameraTile : UserControl
         _tile?.Ptz.StopMove();
     }
 
-    private static bool IsArrow(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down;
+    private static readonly Key[] PtzKeys = [Key.Left, Key.Right, Key.Up, Key.Down, Key.Add, Key.OemPlus, Key.Subtract, Key.OemMinus];
+
+    /// <summary>Unit direction of a key: pan, tilt, zoom.</summary>
+    private static (int Pan, int Tilt, int Zoom) Direction(Key key) => key switch
+    {
+        Key.Left => (-1, 0, 0),
+        Key.Right => (1, 0, 0),
+        Key.Up => (0, 1, 0),
+        Key.Down => (0, -1, 0),
+        Key.Add or Key.OemPlus => (0, 0, 1),
+        Key.Subtract or Key.OemMinus => (0, 0, -1),
+        _ => (0, 0, 0),
+    };
+
+    private bool IsPtzKey(Key key) =>
+        Direction(key) is var d && (d.Pan != 0 || d.Tilt != 0 || (d.Zoom != 0 && _tile?.Ptz.SupportsZoom == true));
 
     /// <summary>
-    /// Arrow keys move the camera while held, only with the arrows showing. One direction at a time:
-    /// cameras like the Tapo C210 run a diagonal as one axis and then the other, so the last key
-    /// pressed wins, and releasing it goes back to a key still held.
+    /// Arrow keys (and + / − for zoom) move the camera while held, only with the arrows showing.
+    /// Cameras that move both axes at once combine the keys held (diagonal). Others, like the Tapo
+    /// C210, run a diagonal as one axis and then the other: there the last key pressed wins, and
+    /// releasing it goes back to a key still held.
     /// </summary>
     private bool MoveFromKeyboard(Key key, bool pressed)
     {
-        if (_tile is not { IsPtzMode: true })
+        if (_tile is not { IsPtzMode: true } tile)
         {
             return false;
         }
 
+        var held = PtzKeys.Where(k => IsPtzKey(k) && Keyboard.IsKeyDown(k)).ToList();
         if (pressed)
         {
             _ptzKey = key;
         }
         else if (key == _ptzKey)
         {
-            _ptzKey = ((Key[])[Key.Left, Key.Right, Key.Up, Key.Down]).Where(k => k != key && Keyboard.IsKeyDown(k))
-                .Cast<Key?>().FirstOrDefault();
+            _ptzKey = held.Where(k => k != key).Cast<Key?>().FirstOrDefault();
+        }
+
+        (int Pan, int Tilt, int Zoom) d;
+        if (tile.Ptz.SupportsDiagonal)
+        {
+            var keys = held.Where(k => k != key || pressed).Select(Direction).ToList();
+            d = (Math.Clamp(keys.Sum(k => k.Pan), -1, 1), Math.Clamp(keys.Sum(k => k.Tilt), -1, 1),
+                Math.Clamp(keys.Sum(k => k.Zoom), -1, 1));
+        }
+        else
+        {
+            d = _ptzKey is { } current ? Direction(current) : (0, 0, 0);
         }
 
         var speed = Mirante.App.Video.CameraPtz.Speed;
-        var (pan, tilt) = _ptzKey switch
-        {
-            Key.Left => (-speed, 0.0),
-            Key.Right => (speed, 0.0),
-            Key.Up => (0.0, speed),
-            Key.Down => (0.0, -speed),
-            _ => (0.0, 0.0),
-        };
-        _tile.Ptz.StartMove(pan, tilt); // (0, 0) stops
+        tile.Ptz.StartMove(d.Pan * speed, d.Tilt * speed, d.Zoom * speed); // all zero stops
         return true;
     }
 
     private void OnOverlayKeyUp(object sender, KeyEventArgs e)
     {
-        if (IsArrow(e.Key))
+        if (IsPtzKey(e.Key))
         {
             e.Handled = MoveFromKeyboard(e.Key, pressed: false);
         }
@@ -318,7 +337,7 @@ internal sealed partial class CameraTile : UserControl
                 return;
             }
 
-            if (IsArrow(e.Key) && Keyboard.Modifiers == ModifierKeys.None && MoveFromKeyboard(e.Key, pressed: true))
+            if (IsPtzKey(e.Key) && Keyboard.Modifiers == ModifierKeys.None && MoveFromKeyboard(e.Key, pressed: true))
             {
                 e.Handled = true;
                 return;

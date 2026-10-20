@@ -80,7 +80,7 @@ public sealed class OnvifTests
         {
             var camera = new FakeOnvifCamera("camera-user", "certa");
             var ptz = await Connect(camera, "certa");
-            await ptz!.MoveAsync(1.5, -0.25, TestContext.Current.CancellationToken);
+            await ptz!.MoveAsync(1.5, -0.25, cancellationToken: TestContext.Current.CancellationToken);
 
             var move = camera.Requests[^1].Body;
             Assert.Equal("ContinuousMove", move.Name.LocalName);
@@ -104,6 +104,46 @@ public sealed class OnvifTests
         Assert.Equal(new PtzPosition(0.141223, -0.5), await ptz!.GetPositionAsync(TestContext.Current.CancellationToken));
     }
 
+    [Theory]
+    [InlineData("tp-link", "Tapo C210", false)]
+    [InlineData("TP-LINK", "C200", false)]
+    [InlineData("", "Tapo C225", false)]
+    [InlineData("HIKVISION", "DS-2DE2A404IW-DE3", true)]
+    [InlineData("Dahua", "SD22404DB-GNY", true)]
+    [InlineData(null, null, true)] // camera doesn't report it: follow the ONVIF standard
+    public async Task Diagonal_moves_except_on_cameras_known_to_run_one_axis_at_a_time(
+        string? manufacturer, string? model, bool diagonal)
+    {
+        var camera = new FakeOnvifCamera("camera-user", "certa") { Manufacturer = manufacturer, Model = model };
+        var ptz = await Connect(camera, "certa");
+        Assert.Equal(diagonal, ptz!.SupportsDiagonal);
+    }
+
+    [Fact]
+    public async Task Zoom_only_move_leaves_pan_and_tilt_out()
+    {
+        var camera = new FakeOnvifCamera("camera-user", "certa") { HasZoom = true };
+        var ptz = await Connect(camera, "certa");
+        Assert.True(ptz!.Capabilities.Zoom);
+
+        await ptz.MoveAsync(0, 0, zoom: 0.5, TestContext.Current.CancellationToken);
+        var velocity = camera.Requests[^1].Body.Element(Ns.Tptz + "Velocity")!;
+        Assert.Null(velocity.Element(Ns.Tt + "PanTilt"));
+        Assert.Equal("0.5", velocity.Element(Ns.Tt + "Zoom")?.Attribute("x")?.Value);
+
+        await ptz.StopAsync(TestContext.Current.CancellationToken);
+        Assert.Equal("true", camera.Requests[^1].Body.Element(Ns.Tptz + "Zoom")?.Value);
+    }
+
+    [Fact]
+    public async Task Stop_leaves_zoom_alone_on_cameras_without_it()
+    {
+        var camera = new FakeOnvifCamera("camera-user", "certa");
+        var ptz = await Connect(camera, "certa");
+        await ptz!.StopAsync(TestContext.Current.CancellationToken);
+        Assert.Equal("false", camera.Requests[^1].Body.Element(Ns.Tptz + "Zoom")?.Value);
+    }
+
     [Fact]
     public void Xml_with_a_dtd_is_rejected()
     {
@@ -125,6 +165,13 @@ public sealed class OnvifTests
 
         public bool HasPtz { get; init; } = true;
 
+        public bool HasZoom { get; init; }
+
+        /// <summary>Null: the camera doesn't implement GetDeviceInformation.</summary>
+        public string? Manufacturer { get; init; } = "tp-link";
+
+        public string? Model { get; init; } = "Tapo C210";
+
         public List<(Uri Uri, XElement Body)> Requests { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -141,6 +188,15 @@ public sealed class OnvifTests
                     """);
             }
 
+            if (body.Name.LocalName == "GetDeviceInformation" && Manufacturer is null)
+            {
+                return Soap(HttpStatusCode.BadRequest, """
+                    <s:Fault><s:Code><s:Value>s:Sender</s:Value><s:Subcode><s:Value>ter:ActionNotSupported</s:Value></s:Subcode></s:Code>
+                    <s:Reason><s:Text xml:lang="en">Not supported</s:Text></s:Reason></s:Fault>
+                    """);
+            }
+
+            var zoomSpace = HasZoom ? "<tt:ContinuousZoomVelocitySpace />" : string.Empty;
             var ptzService = HasPtz
                 ? """<tds:Service><tds:Namespace>http://www.onvif.org/ver20/ptz/wsdl</tds:Namespace><tds:XAddr>http://203.0.113.9:2020/onvif/ptz_service</tds:XAddr></tds:Service>"""
                 : string.Empty;
@@ -164,9 +220,13 @@ public sealed class OnvifTests
                     <trt:Profiles token="profile_ptz"><tt:Name>main</tt:Name><tt:PTZConfiguration token="PTZTOKEN" /></trt:Profiles>
                     </trt:GetProfilesResponse>
                     """,
-                "GetNodes" => """
+                "GetDeviceInformation" => $"""
+                    <tds:GetDeviceInformationResponse><tds:Manufacturer>{Manufacturer}</tds:Manufacturer><tds:Model>{Model}</tds:Model>
+                    <tds:FirmwareVersion>1.0</tds:FirmwareVersion></tds:GetDeviceInformationResponse>
+                    """,
+                "GetNodes" => $"""
                     <tptz:GetNodesResponse><tptz:PTZNode token="n"><tt:SupportedPTZSpaces>
-                    <tt:AbsolutePanTiltPositionSpace /><tt:RelativePanTiltTranslationSpace /><tt:ContinuousPanTiltVelocitySpace />
+                    <tt:AbsolutePanTiltPositionSpace /><tt:RelativePanTiltTranslationSpace /><tt:ContinuousPanTiltVelocitySpace />{zoomSpace}
                     </tt:SupportedPTZSpaces><tt:MaximumNumberOfPresets>8</tt:MaximumNumberOfPresets></tptz:PTZNode></tptz:GetNodesResponse>
                     """,
                 "GetStatus" => """
