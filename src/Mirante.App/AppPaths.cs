@@ -19,4 +19,8 @@ internal static class AppPaths
     /// </summary>
     public static string DefaultSnapshotFolder { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Pictures", "Mirante");
+
+    /// <summary>%USERPROFILE%\Videos\Mirante, for the same reason (not the OneDrive-redirected one).</summary>
+    public static string DefaultRecordingFolder { get; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Videos", "Mirante");
 }

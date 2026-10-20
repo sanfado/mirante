@@ -150,6 +150,8 @@
                                Visibility="{Binding HasCameras, Converter={StaticResource BoolToVisibility}}" />
                     <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon ImageMultiple24}"
                                ToolTip="Abrir pasta de fotos" Click="OnOpenSnapshotsClick" />
+                    <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon VideoClip24}"
+                               ToolTip="Abrir pasta de gravações" Click="OnOpenRecordingsClick" />
                     <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon FullScreenMaximize24}"
                                ToolTip="Tela cheia (F11)" Click="OnFullscreenClick" />
                     <ui:Button Style="{StaticResource TitleBarButton}" Icon="{ui:SymbolIcon Settings24}"

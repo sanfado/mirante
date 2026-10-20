@@ -41,6 +41,34 @@ internal static class StatusReport
             lines.Add($"câmera {i + 1}: mover câmera (PTZ) disponível={tile.Ptz.IsAvailable} diagonal={tile.Ptz.SupportsDiagonal} zoom={tile.Ptz.SupportsZoom}");
         }
 
+        // Recording, with MIRANTE_RECORD_TEST=<folder>: files go there (never the user's folder) and the
+        // caller probes and deletes them. Nothing is shown.
+        if (Environment.GetEnvironmentVariable("MIRANTE_RECORD_TEST") is { Length: > 0 } recordFolder
+            && viewModel.Tiles.FirstOrDefault() is { } camera)
+        {
+            viewModel.RecordingFolder = () => recordFolder;
+            var recorder = camera.Recorder;
+            void Step(string what) => lines.Add(
+                $"gravação {what}: estado={recorder.State} selo=\"{recorder.Badge}\" problema={recorder.Problem ?? "-"} vídeo={camera.Status} arquivos={Files()}");
+            string Files() => string.Join(", ", Directory.EnumerateFiles(recordFolder, "*.mkv", SearchOption.AllDirectories)
+                .Select(f => $"{Path.GetFileName(f)}={new FileInfo(f).Length / 1024}KB"));
+
+            recorder.ToggleManual();
+            await Task.Delay(12000);
+            Step("manual 12 s");
+            recorder.SetContinuous(true);
+            await Task.Delay(2000);
+            recorder.ToggleManual(); // manual -> continuous: a switch with 2 connections already in use
+            await Task.Delay(16000);
+            Step("manual -> contínua");
+            recorder.Restart();
+            await Task.Delay(16000);
+            Step("reinício");
+            recorder.SetContinuous(false);
+            await Task.Delay(4000);
+            Step("desligada");
+        }
+
         await Task.Delay(1000);
         File.WriteAllLines(file, lines);
         Directory.Delete(folder, recursive: true);

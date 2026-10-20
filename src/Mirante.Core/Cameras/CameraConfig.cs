@@ -22,6 +22,9 @@ public sealed record CameraConfig
     /// <summary>"Realçar voz": speech equalization for hard-to-hear camera audio.</summary>
     public bool VoiceBoost { get; init; }
 
+    /// <summary>Records all the time while the app is open (in the tray too).</summary>
+    public bool ContinuousRecording { get; init; }
+
     /// <summary>Saved pan/tilt positions (cameras with PTZ). Null in files written before they existed.</summary>
     public IReadOnlyList<CameraPosition>? Positions { get; init; }
 

@@ -109,6 +109,22 @@
                                        Visibility="{Binding IsAudioOn, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
                     </Border>
+                    <!-- Gravando: vermelho; com problema (sem conexão, sem espaço): âmbar, com o motivo -->
+                    <Border DockPanel.Dock="Left" Margin="8,0,0,0" Padding="8,3" CornerRadius="10" VerticalAlignment="Center"
+                            ToolTip="{Binding Recorder.Problem}"
+                            Visibility="{Binding Recorder.HasBadge, Converter={StaticResource BoolToVisibility}}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#E6D32F2F" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Recorder.HasProblem}" Value="True">
+                                        <Setter Property="Background" Value="#E6B26A00" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Foreground="White" FontSize="10.5" FontWeight="SemiBold" Text="{Binding Recorder.Badge}" />
+                    </Border>
                 </DockPanel>
 
                 <!-- Mover a câmera (PTZ): setas nas bordas, aparecem com o botão "Mover câmera" -->
@@ -165,6 +181,21 @@
                                    Visibility="{Binding Ptz.IsAvailable, Converter={StaticResource BoolToVisibility}}" />
                         <ui:Button Style="{StaticResource OverlayIconButton}" Icon="{ui:SymbolIcon Camera24}"
                                    ToolTip="Tirar foto (F)" Command="{Binding SnapshotCommand}" />
+                        <ui:Button Command="{Binding ToggleRecordingCommand}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource OverlayIconButton}">
+                                    <Setter Property="Icon" Value="{ui:SymbolIcon Record24}" />
+                                    <Setter Property="ToolTip" Value="Gravar agora (R)" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Recorder.IsManual}" Value="True">
+                                            <Setter Property="Icon" Value="{ui:SymbolIcon RecordStop24}" />
+                                            <Setter Property="Foreground" Value="#FFFF6B6B" />
+                                            <Setter Property="ToolTip" Value="Parar e salvar a gravação (R)" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                         <ui:Button x:Name="DetachButton" Style="{StaticResource OverlayIconButton}"
                                    Icon="{ui:SymbolIcon WindowNew24}" ToolTip="Abrir em janela separada"
                                    Command="{Binding ToggleDetachCommand}" />
@@ -180,6 +211,9 @@
                                               Icon="{ui:SymbolIcon Edit24}" />
                                     <MenuItem Header="Reconectar" Command="{Binding RetryCommand}"
                                               Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                                    <MenuItem Header="Gravação contínua" Command="{Binding ToggleContinuousCommand}"
+                                              IsChecked="{Binding Recorder.IsContinuous, Mode=OneWay}"
+                                              ToolTip="Grava sempre que o Mirante estiver aberto, inclusive na bandeja" />
                                     <MenuItem Header="Organizar câmeras…" Command="{Binding OrganizeCommand}"
                                               Icon="{ui:SymbolIcon ArrowSort24}" />
                                     <Separator />

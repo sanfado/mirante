@@ -59,6 +59,9 @@ internal static class DemoMode
     public static async Task RunAsync(MainWindow window, MainViewModel viewModel, SettingsRepository settings, string output)
     {
         Directory.CreateDirectory(output);
+        // Never the user's real recordings folder.
+        var recordings = Directory.CreateDirectory(Path.Combine(output, "gravacoes")).FullName;
+        viewModel.RecordingFolder = () => recordings;
         await Task.Delay(7000);
         Capture(window, output, "01-mosaico");
         File.WriteAllLines(Path.Combine(output, "00-status-e-fotos.txt"), StatusReport.Describe(viewModel, output));
@@ -189,6 +192,20 @@ internal static class DemoMode
             log.Add($"no mosaico: {string.Join(", ", viewModel.Tiles.Where(t => t.IsVisibleInGrid).Select(t => $"{t.Name}={t.Status}"))}");
             log.Add($"salvo: {string.Join(", ", settings.Load().Layouts.Select(l => l.Name))}");
             RenderElement(window.TitleBar, output, "01h-barra-layouts");
+
+            // REC badge on a camera being recorded (demo clips: the file is just copied).
+            var recorded = viewModel.Tiles.First(t => t.IsVisibleInGrid);
+            viewModel.ToggleRecording(recorded);
+            await Task.Delay(2500);
+            if (FindTile(window, recorded) is { } recordedView)
+            {
+                RenderElement(recordedView.Overlay, output, "01j-gravando");
+            }
+
+            log.Add($"gravando: estado={recorded.Recorder.State} selo=\"{recorded.Recorder.Badge}\"");
+            viewModel.ToggleRecording(recorded);
+            await Task.Delay(2000);
+            log.Add($"parada: estado={recorded.Recorder.State} arquivos={Directory.EnumerateFiles(recordings, "*.mkv", SearchOption.AllDirectories).Count()}");
             viewModel.FocusByNumber(0);
             viewModel.SetExcluded([]);
             await Task.Delay(5000);
@@ -238,6 +255,7 @@ internal static class DemoMode
         settingsWindow.Show();
         await Task.Delay(1200);
         Capture(settingsWindow, output, "07-configuracoes");
+        RenderElement((FrameworkElement)settingsWindow.Content, output, "07b-configuracoes-render");
 
         // Same sequence that once left the window half light, half dark: System → Light → Dark.
         foreach (var (theme, name) in new[] { (AppTheme.System, "08-tema-sistema"), (AppTheme.Light, "09-tema-claro"), (AppTheme.Dark, "10-tema-escuro") })

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using Mirante.App.Services;
+using Mirante.Core.Recording;
 using Mirante.Core.Storage;
 using Wpf.Ui.Controls;
 
@@ -37,6 +38,11 @@ internal sealed partial class SettingsWindow : FluentWindow
             _ => 0,
         };
         FolderText.Text = CurrentFolder(settings);
+        RecordingFolderText.Text = RecordingService.Resolve(settings);
+        Fill(RetentionBox, [1, 3, 7, 14, 30, 90], RecordingFiles.ClampRetentionDays(settings.RecordingRetentionDays),
+            d => d == 1 ? "1 dia" : $"{d} dias");
+        Fill(SpaceBox, [25, 50, 100, 250, 500, 1000, 2000], RecordingFiles.ClampMaxGigabytes(settings.RecordingMaxGigabytes),
+            g => g >= 1000 ? $"{g / 1000.0:0.#} TB" : $"{g} GB");
         VersionText.Text = $"Mirante {AppInfo.Version}";
         _loading = false;
     }
@@ -70,6 +76,64 @@ internal sealed partial class SettingsWindow : FluentWindow
             _repository.Save(_repository.Load() with { SnapshotFolder = dialog.FolderName });
             FolderText.Text = dialog.FolderName;
         }
+    }
+
+    /// <summary>The usual choices, plus the current value if it was set to something else.</summary>
+    private static void Fill(ComboBox box, int[] choices, int current, Func<int, string> label)
+    {
+        foreach (var value in choices.Append(current).Distinct().Order())
+        {
+            box.Items.Add(new ComboBoxItem { Content = label(value), Tag = value });
+        }
+
+        box.SelectedItem = box.Items.Cast<ComboBoxItem>().First(i => (int)i.Tag == current);
+    }
+
+    private void OnRetentionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && RetentionBox.SelectedItem is ComboBoxItem { Tag: int days })
+        {
+            _repository.Save(_repository.Load() with { RecordingRetentionDays = days });
+        }
+    }
+
+    private void OnSpaceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && SpaceBox.SelectedItem is ComboBoxItem { Tag: int gigabytes })
+        {
+            _repository.Save(_repository.Load() with { RecordingMaxGigabytes = gigabytes });
+        }
+    }
+
+    private void OnOpenRecordingFolderClick(object sender, RoutedEventArgs e) =>
+        MainWindow.OpenFolder(RecordingService.Resolve(_repository.Load()));
+
+    private void OnChangeRecordingFolderClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Escolha onde salvar as gravações",
+            InitialDirectory = RecordingService.Resolve(_repository.Load()),
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        if (!RecordingFiles.IsUsableFolder(dialog.FolderName))
+        {
+            _ = new Wpf.Ui.Controls.MessageBox
+            {
+                Owner = this,
+                Title = "Pasta não pode ser usada",
+                Content = "O caminho dessa pasta tem aspas ou chaves ({ }), que o motor de vídeo não aceita. Escolha outra pasta.",
+                CloseButtonText = "OK",
+            }.ShowDialogAsync();
+            return;
+        }
+
+        _repository.Save(_repository.Load() with { RecordingFolder = dialog.FolderName });
+        RecordingFolderText.Text = dialog.FolderName;
     }
 
     private void OnStartupToggled(object sender, RoutedEventArgs e)

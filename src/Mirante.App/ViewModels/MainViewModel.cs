@@ -73,13 +73,14 @@ internal sealed partial class MainViewModel : ObservableObject
     private int _defaultVolume = AudioBoost.DefaultVolume;
 
     public MainViewModel(CameraRepository cameras, ICredentialStore credentials, VideoEngine engine,
-        Func<string> snapshotFolder, Dispatcher dispatcher)
+        Func<string> snapshotFolder, Func<string> recordingFolder, Dispatcher dispatcher)
     {
         _cameras = cameras;
         _credentials = credentials;
         _engine = engine;
         _dispatcher = dispatcher;
         SnapshotFolder = snapshotFolder;
+        RecordingFolder = recordingFolder;
         _saveSoon = new DispatcherTimer(DispatcherPriority.Background, dispatcher) { Interval = TimeSpan.FromMilliseconds(600) };
         _saveSoon.Tick += (_, _) =>
         {
@@ -98,6 +99,26 @@ internal sealed partial class MainViewModel : ObservableObject
     public IShell? Shell { get; set; }
 
     public Func<string> SnapshotFolder { get; set; }
+
+    public Func<string> RecordingFolder { get; set; }
+
+    /// <summary>Every camera's recorder, with its name (for the recording service).</summary>
+    public IReadOnlyList<(string Name, CameraRecorder Recorder)> Recorders => [.. Tiles.Select(t => (t.Name, t.Recorder))];
+
+    /// <summary>"Gravar agora" / stop.</summary>
+    public void ToggleRecording(CameraTileViewModel tile)
+    {
+        tile.Recorder.ToggleManual();
+        Shell?.ShowToast(tile.Recorder.IsManual ? $"Gravando {tile.Name}" : $"Gravação de {tile.Name} salva", tile.Recorder.IsManual ? null : RecordingFolder());
+    }
+
+    public void SetContinuousRecording(CameraTileViewModel tile, bool on)
+    {
+        tile.Stream.UpdateContinuousRecording(on);
+        tile.Recorder.SetContinuous(on);
+        Save();
+        Shell?.ShowToast(on ? $"Gravação contínua ligada em {tile.Name}" : $"Gravação contínua desligada em {tile.Name}");
+    }
 
     public ObservableCollection<CameraTileViewModel> Tiles { get; } = [];
 
@@ -282,6 +303,7 @@ internal sealed partial class MainViewModel : ObservableObject
 
         tile.Stream.UpdateConfig(result.Config);
         tile.RefreshConfig();
+        tile.Recorder.Restart(); // address or password may have changed
         Save();
     }
 
@@ -302,6 +324,7 @@ internal sealed partial class MainViewModel : ObservableObject
         // (closing its window, removing its tile) can no longer touch the player.
         _ = tile.Stream.ShutdownAsync();
         tile.Ptz.Dispose();
+        tile.Recorder.Dispose(); // the camera's recordings stay on disk
 
         if (tile.IsDetached)
         {
@@ -449,7 +472,7 @@ internal sealed partial class MainViewModel : ObservableObject
             tile.Ptz.Dispose();
         }
 
-        return Task.WhenAll(Tiles.Select(t => t.Stream.ShutdownAsync()));
+        return Task.WhenAll([.. Tiles.Select(t => t.Stream.ShutdownAsync()), .. Tiles.Select(t => t.Recorder.ShutdownAsync())]);
     }
 
     partial void OnFocusedTileChanged(CameraTileViewModel? value)
@@ -463,8 +486,17 @@ internal sealed partial class MainViewModel : ObservableObject
         UpdateGrid();
     }
 
-    private CameraTileViewModel CreateTile(CameraConfig config) =>
-        new(new CameraStream(config, _engine, _credentials, _dispatcher) { DefaultVolume = _defaultVolume }, this);
+    private CameraTileViewModel CreateTile(CameraConfig config)
+    {
+        var stream = new CameraStream(config, _engine, _credentials, _dispatcher) { DefaultVolume = _defaultVolume };
+        var recorder = new CameraRecorder(_engine, _credentials, () => stream.Config, () => RecordingFolder(), _dispatcher);
+        if (config.ContinuousRecording)
+        {
+            recorder.SetContinuous(true);
+        }
+
+        return new CameraTileViewModel(stream, recorder, this);
+    }
 
     private void OnTilesChanged()
     {

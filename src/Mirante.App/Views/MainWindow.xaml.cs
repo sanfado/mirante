@@ -17,6 +17,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     private readonly MainViewModel _viewModel;
     private readonly SettingsRepository _settings;
     private readonly Services.UpdateService _updates;
+    private readonly Services.RecordingService _recordings;
     private readonly Fullscreen _fullscreen;
     private readonly Dictionary<CameraTileViewModel, DetachedCameraWindow> _detached = [];
     private readonly Dictionary<Guid, WindowPlacement> _pendingPlacements = [];
@@ -24,12 +25,17 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     private string? _toastFolder;
     private bool _exiting;
 
-    internal MainWindow(MainViewModel viewModel, SettingsRepository settings, Services.UpdateService updates)
+    internal MainWindow(MainViewModel viewModel, SettingsRepository settings, Services.UpdateService updates,
+        Services.RecordingService recordings)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _settings = settings;
         _updates = updates;
+        _recordings = recordings;
+        recordings.Alert += OnRecordingAlert;
+        recordings.ActiveChanged += count =>
+            TrayIcon.TooltipText = count == 0 ? "Mirante" : $"Mirante · gravando {count} {(count == 1 ? "câmera" : "câmeras")}";
         updates.PropertyChanged += (_, _) => ShowUpdateButton();
         ShowUpdateButton();
         DataContext = viewModel;
@@ -212,6 +218,9 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
             case Key.M when _viewModel.AudioTile is not null:
                 _viewModel.AudioTile = null;
                 return true;
+            case Key.R when _viewModel.FocusedTile is { } recorded:
+                _viewModel.ToggleRecording(recorded);
+                return true;
             case >= Key.D0 and <= Key.D9:
                 _viewModel.FocusByNumber(key - Key.D0);
                 return true;
@@ -234,9 +243,25 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     private void OnOpenSnapshotsClick(object sender, RoutedEventArgs e) => OpenFolder(_viewModel.SnapshotFolder());
 
+    private void OnOpenRecordingsClick(object sender, RoutedEventArgs e) => OpenFolder(_recordings.Folder);
+
+    /// <summary>In the app when it's on screen; from the tray icon (a Windows notification) when it isn't.</summary>
+    private void OnRecordingAlert(string message)
+    {
+        if (IsVisible && WindowState != WindowState.Minimized)
+        {
+            ShowToast(message);
+        }
+        else if (!TrayBalloon.Show(TrayIcon, "Mirante", message))
+        {
+            ShowToast(message);
+        }
+    }
+
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
         new SettingsWindow(_settings, UpdateTrayIcon, _updates, ApplyUpdate) { Owner = this }.ShowDialog();
+        _recordings.Tick(); // a new folder or limits apply right away
     }
 
     private void OnToastClick(object sender, MouseButtonEventArgs e)

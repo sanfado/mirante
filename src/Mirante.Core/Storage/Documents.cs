@@ -110,6 +110,15 @@ public sealed record AppSettings
 
     public List<LayoutPreset> Layouts { get; init; } = [];
 
+    /// <summary>Null means the default folder (see <c>AppPaths</c>).</summary>
+    public string? RecordingFolder { get; init; }
+
+    /// <summary>Continuous recordings older than this are deleted. Null: the default (7).</summary>
+    public int? RecordingRetentionDays { get; init; }
+
+    /// <summary>Recordings may use up to this much disk. Null: the default (100 GB).</summary>
+    public int? RecordingMaxGigabytes { get; init; }
+
     /// <summary>Cameras left out by the layout in use (paused), so the app reopens as it was left.</summary>
     public List<Guid> HiddenCameras { get; init; } = [];
 }

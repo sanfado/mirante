@@ -37,9 +37,10 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowPtzPad))]
     private bool _isPtzMode;
 
-    public CameraTileViewModel(CameraStream stream, MainViewModel owner)
+    public CameraTileViewModel(CameraStream stream, CameraRecorder recorder, MainViewModel owner)
     {
         Stream = stream;
+        Recorder = recorder;
         _owner = owner;
         Stream.PropertyChanged += OnStreamChanged;
         Ptz.PropertyChanged += (_, e) =>
@@ -54,6 +55,8 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     public CameraStream Stream { get; }
 
     public CameraPtz Ptz { get; } = new();
+
+    public CameraRecorder Recorder { get; }
 
     public IReadOnlyList<Mirante.Core.Cameras.CameraPosition> Positions => Stream.Config.Positions ?? [];
 
@@ -195,6 +198,13 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     [RelayCommand]
     private void TogglePtzMode() => IsPtzMode = !IsPtzMode;
+
+    /// <summary>"Gravar agora" / stop (R).</summary>
+    [RelayCommand]
+    private void ToggleRecording() => _owner.ToggleRecording(this);
+
+    [RelayCommand]
+    private void ToggleContinuous() => _owner.SetContinuousRecording(this, !Recorder.IsContinuous);
 
     [RelayCommand]
     private Task SavePositionAsync() => _owner.SavePositionAsync(this);

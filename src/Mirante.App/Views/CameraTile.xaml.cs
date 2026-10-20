@@ -389,6 +389,13 @@ internal sealed partial class CameraTile : UserControl
                 return;
             }
 
+            if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.None && _tile is not null)
+            {
+                _tile.ToggleRecordingCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
             if (e.Key == Key.M && Keyboard.Modifiers == ModifierKeys.None && _tile is not null)
             {
                 _tile.ToggleAudioCommand.Execute(null);

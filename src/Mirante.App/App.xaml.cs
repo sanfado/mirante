@@ -17,6 +17,7 @@ public partial class App : Application
     private SingleInstance? _instance;
     private VideoEngine? _engine;
     private MainViewModel? _viewModel;
+    private RecordingService? _recordings;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -76,10 +77,14 @@ public partial class App : Application
 #endif
         var snapshotSettings = settingsRepository;
         _viewModel = new MainViewModel(cameras, credentials, _engine,
-            () => snapshotSettings.Load().SnapshotFolder ?? AppPaths.DefaultSnapshotFolder, Dispatcher);
+            () => snapshotSettings.Load().SnapshotFolder ?? AppPaths.DefaultSnapshotFolder,
+            () => RecordingService.Resolve(snapshotSettings.Load()), Dispatcher);
+        var viewModel = _viewModel;
+        _recordings = new RecordingService(() => viewModel.Recorders, settingsRepository, Dispatcher);
 
         var updates = new UpdateService(Dispatcher);
-        var window = new MainWindow(_viewModel, settingsRepository, updates);
+        var window = new MainWindow(_viewModel, settingsRepository, updates, _recordings);
+        _recordings.Start();
         MainWindow = window;
 
         // Launched by Windows at sign-in and the user chose to keep it in the tray: no window yet.
@@ -123,8 +128,10 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        // LibVLC can take a while to stop RTSP streams; don't hang the exit on it.
-        _viewModel?.ShutdownAsync().Wait(TimeSpan.FromSeconds(3));
+        // LibVLC can take a while to stop RTSP streams; don't hang the exit on it. Recordings are
+        // closed here too (the files stay playable even if this times out).
+        _recordings?.Dispose();
+        _viewModel?.ShutdownAsync().Wait(TimeSpan.FromSeconds(5));
         _engine?.Dispose();
         _instance?.Dispose();
         base.OnExit(e);

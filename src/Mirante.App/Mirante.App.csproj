@@ -24,7 +24,7 @@
     Só os plugins do VLC que o Mirante usa (lista de permitidos, ~330 → ~60):
     RTSP + decodificação H.264/H.265/MJPEG na GPU + áudio da câmera + saída de vídeo + foto.
     Fica de fora: codificadores (ex.: x264, GPL), DVD/Blu-ray, legendas, efeitos de áudio,
-    streaming de saída, cofre de senhas em arquivo, Lua etc. Menos superfície de ataque, menor
+    streaming de saída pela rede, cofre de senhas em arquivo, Lua etc. Menos superfície de ataque, menor
     instalador e nenhum componente GPL desnecessário. Ao ligar um recurso novo, acrescente aqui.
   -->
   <!-- Diagnóstico: dotnet build -p:MiranteFullVlc=true inclui todos os plugins, para comparar. -->
@@ -50,6 +50,9 @@
     <VlcWindowsX64IncludeFiles Include="plugins\audio_filter\libequalizer_plugin.dll;plugins\audio_filter\libaudio_format_plugin.dll;plugins\audio_filter\libspeex_resampler_plugin.dll;plugins\audio_filter\libugly_resampler_plugin.dll;plugins\audio_filter\libtrivial_channel_mixer_plugin.dll;plugins\audio_filter\libsimple_channel_mixer_plugin.dll;plugins\audio_filter\libremap_plugin.dll;plugins\audio_filter\libscaletempo_plugin.dll" />
     <VlcWindowsX64IncludeFiles Include="plugins\codec\libg711_plugin.dll;plugins\codec\libaraw_plugin.dll;plugins\codec\liblpcm_plugin.dll;plugins\codec\libadpcm_plugin.dll" />
     <VlcWindowsX64IncludeFiles Include="plugins\packetizer\libpacketizer_mpeg4audio_plugin.dll;plugins\packetizer\libpacketizer_mpegaudio_plugin.dll" />
+    <!-- Gravação: cópia do fluxo para arquivo MKV local (o MKV usa o próprio libavcodec). Só saída
+         para arquivo: nenhum módulo de envio pela rede (http, udp, rtp) entra. -->
+    <VlcWindowsX64IncludeFiles Include="plugins\stream_out\libstream_out_standard_plugin.dll;plugins\access_output\libaccess_output_file_plugin.dll" />
     <!-- Cofre de senhas só em memória (opção keystore=memory) -->
     <VlcWindowsX64IncludeFiles Include="plugins\keystore\libmemory_keystore_plugin.dll" />
   </ItemGroup>

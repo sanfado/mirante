@@ -70,5 +70,24 @@ internal sealed class VideoEngine : IDisposable
         return CreateMedia(Mirante.Core.Cameras.RtspAddress.Build(camera), credential);
     }
 
+    /// <summary>
+    /// The camera's stream copied into an MKV file, as it arrives (no decoding, no re-encoding).
+    /// MKV keeps H.264/H.265 and the cameras' G.711 audio, and stays playable if the app or the PC
+    /// stops abruptly. Nothing is shown or played.
+    /// </summary>
+    public Media CreateRecordingMedia(Mirante.Core.Cameras.CameraConfig camera, CameraCredential credential, string path)
+    {
+        // The path goes inside LibVLC's output settings: it must not be able to change them.
+        if (path.IndexOfAny(['\'', '"', '{', '}', '\0']) >= 0 || !Path.IsPathFullyQualified(path))
+        {
+            throw new ArgumentException("Recording path not allowed.", nameof(path));
+        }
+
+        var media = CreateMedia(camera, credential);
+        media.AddOption(":network-caching=1000");
+        media.AddOption($":sout=#std{{access=file,mux=mkv,dst='{path}'}}");
+        return media;
+    }
+
     public void Dispose() => LibVlc.Dispose();
 }
