@@ -36,8 +36,9 @@
 - **Controles da câmera (PTZ):** girar/inclinar câmeras como a Tapo C210 pelo app. Estudar:
   ONVIF (padrão, se a câmera expuser) ou o protocolo próprio da Tapo.
 - **Falar pela câmera** (microfone do PC → alto-falante da câmera) e modo **“chamada”**
-  (conversa contínua), como no app Tapo. Estudar: canal de áudio de volta do ONVIF/RTSP
-  (*backchannel*) e se a Tapo o oferece fora do app dela; latência, eco e segurança.
+  (conversa contínua), como no app Tapo. Já verificado (2026-10-20): a Tapo C210 **não** expõe
+  saída de áudio via ONVIF (`GetAudioOutputs` vazio), então depende do protocolo próprio da
+  Tapo. Estudar: o que ele exige (conta TP-Link?), latência, eco e segurança.
 - **Nivelador de áudio (compressor):** igualar sons baixos e altos. O VLC 3 não permite
   compressor e equalizador juntos por câmera; exige o app processar o áudio por conta própria.
 - **Gravação local:** manual e contínua, com limite de espaço e apagamento automático;
