@@ -1,4 +1,4 @@
-<UserControl x:Class="Mirante.App.Views.CameraTile"
+﻿<UserControl x:Class="Mirante.App.Views.CameraTile"
              x:ClassModifier="internal"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,6 +10,32 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:CameraTileViewModel}"
              d:DesignWidth="640" d:DesignHeight="360">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="PtzArrowPressed" Color="#CC3B6FD9" />
+        <!-- Setas de mover a câmera: segurar move, soltar para -->
+        <Style x:Key="PtzArrow" TargetType="Border">
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Background" Value="#80101418" />
+            <Setter Property="BorderBrush" Value="#40FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B3101418" />
+                    <Setter Property="BorderBrush" Value="#80FFFFFF" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PtzGlyph" TargetType="ui:SymbolIcon">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+    </UserControl.Resources>
     <Border Background="{StaticResource StageVideoBackground}"
             BorderBrush="{StaticResource StageTileBorder}"
             BorderThickness="1"
@@ -85,6 +111,27 @@
                     </Border>
                 </DockPanel>
 
+                <!-- Mover a câmera (PTZ): setas nas bordas, aparecem com o botão "Mover câmera" -->
+                <Grid x:Name="PtzPad" Margin="14,14,14,50"
+                      Visibility="{Binding ShowPtzPad, Converter={StaticResource BoolToVisibility}}">
+                    <Border Style="{StaticResource PtzArrow}" Tag="0,1" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            ToolTip="Para cima (↑)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
+                        <ui:SymbolIcon Symbol="ChevronUp24" Style="{StaticResource PtzGlyph}" />
+                    </Border>
+                    <Border Style="{StaticResource PtzArrow}" Tag="0,-1" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                            ToolTip="Para baixo (↓)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
+                        <ui:SymbolIcon Symbol="ChevronDown24" Style="{StaticResource PtzGlyph}" />
+                    </Border>
+                    <Border Style="{StaticResource PtzArrow}" Tag="-1,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                            ToolTip="Para a esquerda (←)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
+                        <ui:SymbolIcon Symbol="ChevronLeft24" Style="{StaticResource PtzGlyph}" />
+                    </Border>
+                    <Border Style="{StaticResource PtzArrow}" Tag="1,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            ToolTip="Para a direita (→)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
+                        <ui:SymbolIcon Symbol="ChevronRight24" Style="{StaticResource PtzGlyph}" />
+                    </Border>
+                </Grid>
+
                 <!-- Ações (aparecem ao passar o mouse) -->
                 <Border x:Name="Actions" Margin="10" Padding="4" HorizontalAlignment="Right" VerticalAlignment="Top"
                         CornerRadius="21" Background="{StaticResource OverlayChrome}" Opacity="0">
@@ -92,6 +139,10 @@
                         <ui:Button x:Name="AudioButton" Style="{StaticResource OverlayIconButton}"
                                    Icon="{ui:SymbolIcon SpeakerMute24}" ToolTip="Ligar o som (M)"
                                    Command="{Binding ToggleAudioCommand}" />
+                        <ui:Button x:Name="PtzButton" Style="{StaticResource OverlayIconButton}"
+                                   Icon="{ui:SymbolIcon ArrowMove24}" ToolTip="Mover a câmera"
+                                   Command="{Binding TogglePtzModeCommand}"
+                                   Visibility="{Binding Ptz.IsAvailable, Converter={StaticResource BoolToVisibility}}" />
                         <ui:Button Style="{StaticResource OverlayIconButton}" Icon="{ui:SymbolIcon Camera24}"
                                    ToolTip="Tirar foto (F)" Command="{Binding SnapshotCommand}" />
                         <ui:Button x:Name="DetachButton" Style="{StaticResource OverlayIconButton}"

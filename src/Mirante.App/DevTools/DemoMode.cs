@@ -1,4 +1,4 @@
-#if DEBUG
+﻿#if DEBUG
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -140,6 +140,16 @@ internal static class DemoMode
             $"depois: {string.Join(", ", viewModel.Tiles.Select(t => $"{t.Name}={t.Status}"))}",
         ]);
         Capture(window, output, "01d-ordem-invertida");
+
+        // Pan/tilt arrows (demo videos have no PTZ, so only the look is checked; WPF-only render).
+        if (viewModel.Tiles.FirstOrDefault(t => t.Status == Video.StreamStatus.Live) is { } live
+            && FindTile(window, live) is { } tileView)
+        {
+            live.IsPtzMode = true;
+            await Task.Delay(800);
+            RenderElement(tileView.Overlay, output, "01e-setas-ptz");
+            live.IsPtzMode = false;
+        }
 
         if (viewModel.Tiles.Count == 0)
         {
@@ -307,6 +317,25 @@ internal static class DemoMode
         encoder.Frames.Add(BitmapFrame.Create(source));
         using var file = File.Create(Path.Combine(folder, name + ".png"));
         encoder.Save(file);
+    }
+
+    private static CameraTile? FindTile(System.Windows.DependencyObject root, ViewModels.CameraTileViewModel tile)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is CameraTile view && ReferenceEquals(view.DataContext, tile))
+            {
+                return view;
+            }
+
+            if (FindTile(child, tile) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Renders WPF content only (no screen grab, no video): safe while the user uses the PC.</summary>

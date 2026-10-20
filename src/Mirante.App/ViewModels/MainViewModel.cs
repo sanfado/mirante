@@ -258,6 +258,7 @@ internal sealed partial class MainViewModel : ObservableObject
         // Stop the player first, while its view still exists; everything after this
         // (closing its window, removing its tile) can no longer touch the player.
         _ = tile.Stream.ShutdownAsync();
+        tile.Ptz.Dispose();
 
         if (tile.IsDetached)
         {
@@ -343,6 +344,7 @@ internal sealed partial class MainViewModel : ObservableObject
     {
         foreach (var tile in Tiles)
         {
+            tile.Ptz.StopMove();
             tile.Stream.Pause();
         }
     }
@@ -355,7 +357,15 @@ internal sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    public Task ShutdownAsync() => Task.WhenAll(Tiles.Select(t => t.Stream.ShutdownAsync()));
+    public Task ShutdownAsync()
+    {
+        foreach (var tile in Tiles)
+        {
+            tile.Ptz.Dispose();
+        }
+
+        return Task.WhenAll(Tiles.Select(t => t.Stream.ShutdownAsync()));
+    }
 
     partial void OnFocusedTileChanged(CameraTileViewModel? value)
     {

@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -35,6 +35,8 @@ internal sealed partial class CameraTile : UserControl
         Unloaded += (_, _) => _tile?.Stream.Release(Video);
         DataContextChanged += OnDataContextChanged;
         Overlay.PreviewKeyDown += OnOverlayKeyDown;
+        Overlay.PreviewKeyUp += OnOverlayKeyUp;
+        Overlay.LostKeyboardFocus += (_, _) => StopKeyboardMove();
 
         // The overlay is a separate window that doesn't follow WPF visibility: hide its content ourselves,
         // otherwise labels of hidden cameras would float over the focused one.
@@ -91,6 +93,7 @@ internal sealed partial class CameraTile : UserControl
             _tile.PropertyChanged += OnTileChanged;
             ProblemGlyph.Text = char.ConvertFromUtf32((int)_tile.ProblemIcon);
             ShowAudioState();
+            ShowPtzState();
         }
 
         UpdateAttachment();
@@ -109,6 +112,10 @@ internal sealed partial class CameraTile : UserControl
         else if (e.PropertyName == nameof(CameraTileViewModel.IsAudioOn))
         {
             ShowAudioState();
+        }
+        else if (e.PropertyName == nameof(CameraTileViewModel.IsPtzMode))
+        {
+            ShowPtzState();
         }
         else if (e.PropertyName == nameof(CameraTileViewModel.Status))
         {
@@ -174,6 +181,76 @@ internal sealed partial class CameraTile : UserControl
         AudioGlyph.Text = char.ConvertFromUtf32((int)Wpf.Ui.Controls.SymbolRegular.Speaker224);
     }
 
+    private void ShowPtzState()
+    {
+        var on = _tile?.IsPtzMode == true;
+        PtzButton.Appearance = on ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Transparent;
+        PtzButton.ToolTip = on ? "Esconder as setas" : "Mover a câmera (as setas do teclado também movem)";
+    }
+
+    private void OnPtzArrowDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Border { Tag: string tag } arrow || _tile is null)
+        {
+            return;
+        }
+
+        var parts = tag.Split(',');
+        var pan = double.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
+        var tilt = double.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
+        arrow.CaptureMouse();
+        arrow.Background = (System.Windows.Media.Brush)FindResource("PtzArrowPressed");
+        _tile.Ptz.StartMove(pan * Mirante.App.Video.CameraPtz.Speed, tilt * Mirante.App.Video.CameraPtz.Speed);
+        e.Handled = true; // not a double-click on the video
+    }
+
+    private void OnPtzArrowUp(object sender, MouseButtonEventArgs e)
+    {
+        (sender as Border)?.ReleaseMouseCapture(); // LostMouseCapture stops the move
+        e.Handled = true;
+    }
+
+    private void OnPtzArrowLost(object sender, MouseEventArgs e)
+    {
+        (sender as Border)?.ClearValue(Border.BackgroundProperty);
+        _tile?.Ptz.StopMove();
+    }
+
+    private static bool IsArrow(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down;
+
+    /// <summary>Arrow keys move the camera while held (two at once: diagonal), only with the arrows showing.</summary>
+    private bool MoveFromKeyboard()
+    {
+        if (_tile is not { IsPtzMode: true })
+        {
+            return false;
+        }
+
+        static int Axis(Key negative, Key positive) =>
+            (Keyboard.IsKeyDown(positive) ? 1 : 0) - (Keyboard.IsKeyDown(negative) ? 1 : 0);
+
+        var speed = Mirante.App.Video.CameraPtz.Speed;
+        _tile.Ptz.StartMove(Axis(Key.Left, Key.Right) * speed, Axis(Key.Down, Key.Up) * speed);
+        return true;
+    }
+
+    private void OnOverlayKeyUp(object sender, KeyEventArgs e)
+    {
+        if (IsArrow(e.Key))
+        {
+            e.Handled = MoveFromKeyboard();
+        }
+    }
+
+    /// <summary>Focus went elsewhere while a key was held: the key-up will never come here.</summary>
+    private void StopKeyboardMove()
+    {
+        if (_tile is { IsPtzMode: true } && Mouse.Captured is not Border)
+        {
+            _tile.Ptz.StopMove();
+        }
+    }
+
     /// <summary>The mosaic tile shows video unless the camera is detached; the detached window does the opposite.</summary>
     private void UpdateAttachment()
     {
@@ -216,6 +293,12 @@ internal sealed partial class CameraTile : UserControl
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.None && _tile is not null)
             {
                 _tile.SnapshotCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
+            if (IsArrow(e.Key) && Keyboard.Modifiers == ModifierKeys.None && MoveFromKeyboard())
+            {
                 e.Handled = true;
                 return;
             }

@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mirante.App.Video;
@@ -27,14 +27,28 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsVisibleInGrid))]
     private bool _isHiddenByFocus;
 
+    /// <summary>Pan/tilt mode is on (arrow keys move the camera too).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowPtzPad))]
+    private bool _isPtzMode;
+
     public CameraTileViewModel(CameraStream stream, MainViewModel owner)
     {
         Stream = stream;
         _owner = owner;
         Stream.PropertyChanged += OnStreamChanged;
+        Ptz.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(CameraPtz.IsAvailable) && !Ptz.IsAvailable)
+            {
+                IsPtzMode = false;
+            }
+        };
     }
 
     public CameraStream Stream { get; }
+
+    public CameraPtz Ptz { get; } = new();
 
     public Guid Id => Stream.Config.Id;
 
@@ -71,6 +85,9 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     public bool HasNoPicture => Status != StreamStatus.Live;
 
+    /// <summary>The arrows only show over live video (never on top of "Reconectando…").</summary>
+    public bool ShowPtzPad => IsPtzMode && Status == StreamStatus.Live;
+
     public bool ShowSpinner => Status is StreamStatus.Connecting or StreamStatus.Reconnecting;
 
     public bool ShowProblem => Status is StreamStatus.Offline or StreamStatus.AuthFailed or StreamStatus.MissingCredentials;
@@ -104,6 +121,16 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(ProblemMessage));
+        Ptz.Reset(); // address or password may have changed; look again once live
+        DetectPtz();
+    }
+
+    partial void OnIsPtzModeChanged(bool value)
+    {
+        if (!value)
+        {
+            Ptz.StopMove();
+        }
     }
 
     public void RefreshFocus() => OnPropertyChanged(nameof(IsFocused));
@@ -135,6 +162,17 @@ internal sealed partial class CameraTileViewModel : ObservableObject
     [RelayCommand]
     private void Organize() => _owner.OrganizeCommand.Execute(null);
 
+    [RelayCommand]
+    private void TogglePtzMode() => IsPtzMode = !IsPtzMode;
+
+    private void DetectPtz()
+    {
+        if (Status == StreamStatus.Live)
+        {
+            Ptz.Detect(Stream.Config, _owner.StoredCredential(Id));
+        }
+    }
+
     private void OnStreamChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(CameraStream.Status))
@@ -144,9 +182,11 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
         foreach (var name in (string[])[nameof(Status), nameof(HasNoPicture), nameof(StatusLabel), nameof(Tone), nameof(ShowSpinner),
                      nameof(ShowProblem), nameof(ShowEditAction), nameof(BusyText), nameof(ProblemIcon),
-                     nameof(ProblemTitle), nameof(ProblemMessage)])
+                     nameof(ProblemTitle), nameof(ProblemMessage), nameof(ShowPtzPad)])
         {
             OnPropertyChanged(name);
         }
+
+        DetectPtz();
     }
 }

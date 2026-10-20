@@ -1,4 +1,4 @@
-#if DEBUG
+﻿#if DEBUG
 using System.Windows;
 using Mirante.App.ViewModels;
 
@@ -33,6 +33,12 @@ internal static class StatusReport
             await Task.Delay(3000);
             lines.Add($"câmera {i + 1}: 180% + realçar voz (muda): {tile.Stream.AudioState} status={tile.Status}");
             tile.Stream.UpdateAudioSettings(original);
+        }
+
+        // Pan/tilt found over ONVIF (read-only: nothing is moved here).
+        foreach (var (tile, i) in viewModel.Tiles.Select((t, i) => (t, i)))
+        {
+            lines.Add($"câmera {i + 1}: mover câmera (PTZ) disponível={tile.Ptz.IsAvailable}");
         }
 
         await Task.Delay(1000);
