@@ -32,20 +32,11 @@
 - **0.4.0:** mover a câmera (PTZ) via ONVIF: setas no vídeo e no teclado, detecção automática;
   diagonal e zoom em câmeras que suportam (a Tapo move um eixo por vez e não tem zoom óptico).
 - **0.5.0:** posições salvas da câmera (“Porta”, “Sofá”): guardadas no Mirante, volta exata.
+- **0.6.0:** layouts salvos (desenho abaixo, em “Decisões”).
 
 ## Próximas versões (propostas, a conversar)
 
-- **Layouts salvos** (em andamento; desenho combinado em 2026-10-20):
-  - Criar = **salvar o que está na tela** (“Salvar layout atual…”), sem editor à parte.
-  - Guarda: janelas (principal e destacadas: posição, monitor, tela cheia), câmera em foco,
-    câmeras **excluídas** (ficam pausadas) e, opcional e desmarcado por padrão, para onde as
-    câmeras PTZ apontam.
-  - Não guarda: som (trocar de layout nunca liga áudio), volume/realce (são da câmera) e a
-    ordem do mosaico (única, para as teclas 1–9 não mudarem de sentido).
-  - Câmera nova entra em todos os layouts (guarda-se quem foi excluído, não quem foi incluído).
-  - Troca: seletor na barra de título (com atualizar, renomear e excluir), Ctrl+1–9 e menu
-    da bandeja. Ao abrir, o app volta como foi deixado; layout é algo que se ativa.
-  - Depois: troca automática por horário.
+- **Layouts, próximos passos:** troca automática por horário.
 - **Falar pela câmera** (microfone do PC → alto-falante da câmera) e modo **“chamada”**
   (conversa contínua), como no app Tapo. Já verificado (2026-10-20): a Tapo C210 **não** expõe
   saída de áudio via ONVIF (`GetAudioOutputs` vazio), então depende do protocolo próprio da
@@ -57,6 +48,19 @@
 - **Eventos:** detecção de movimento com aviso do Windows e gravação por evento.
 - **Interface em inglês** (hoje só pt-BR; o README já é bilíngue).
 - **1.0:** instalador assinado (SignPath), i18n, guia de contribuição.
+
+## Decisões
+
+- **Layouts** (combinado em 2026-10-20, entregue na 0.6.0):
+  - Criar = **salvar o que está na tela** (“Salvar layout atual…”), sem editor à parte.
+  - Guarda: janelas (principal e destacadas: posição, monitor, tela cheia), câmera em foco,
+    câmeras **excluídas** (ficam pausadas) e, opcional e desmarcado por padrão, para onde as
+    câmeras PTZ apontam.
+  - Não guarda: som (trocar de layout nunca liga áudio), volume/realce (são da câmera) e a
+    ordem do mosaico (única, para as teclas 1–9 não mudarem de sentido).
+  - Câmera nova entra em todos os layouts (guarda-se quem foi excluído, não quem foi incluído).
+  - Troca: seletor na barra de título (com atualizar, renomear e excluir), Ctrl+1–9 e menu
+    da bandeja. Ao abrir, o app volta como foi deixado; layout é algo que se ativa.
 
 ## A decidir antes de seguir
 

@@ -24,6 +24,7 @@
 - **Mosaico automático** que aproveita ao máximo a tela (num monitor em pé, as câmeras empilham).
 - **Destacar câmera** em janela própria, no mesmo app, para pôr cada câmera num monitor.
 - **Lembra o layout**: ao reabrir, cada câmera destacada volta ao mesmo monitor, inclusive em tela cheia.
+- **Layouts salvos** (“Noite”, “Dia”): guardam as janelas, a câmera em foco, quais câmeras ficam de fora (pausadas) e, se quiser, para onde as câmeras giratórias apontam. Troca pela barra de título, `Ctrl+1`–`9` ou pela bandeja; o som nunca muda sozinho.
 - **Tela cheia no monitor onde a janela está** (F11), não no monitor principal.
 - **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
 - **Áudio**: um botão de som por câmera, só uma tocando por vez; volume até 200% e “Realçar voz”, salvos por câmera.
@@ -68,6 +69,7 @@ Detalhes e limitações (RTSP não é criptografado) em [SECURITY.md](SECURITY.m
 | `F11` | Tela cheia no monitor atual |
 | `Esc` | Sai da tela cheia / do foco |
 | `1`–`9` / `0` | Foca a câmera N / volta ao mosaico |
+| `Ctrl+1`–`9` | Ativa o layout N |
 | `M` | Liga/desliga o som da câmera |
 | Setas / `+` `−` | Movem a câmera e o zoom (com “Mover câmera” ligado) |
 | `F` | Foto da câmera sob o mouse |

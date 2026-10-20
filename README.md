@@ -25,6 +25,7 @@
 - **Automatic mosaic** that makes the most of the screen (on a portrait monitor, cameras stack).
 - **Pop out a camera** into its own window, in the same app, to put each camera on a different monitor.
 - **Remembers the layout**: on reopen, each popped-out camera returns to the same monitor, fullscreen included.
+- **Saved layouts** ("Night", "Day"): they keep the windows, the camera in focus, which cameras are left out (paused) and, optionally, where pan/tilt cameras point. Switch from the title bar, `Ctrl+1`–`9` or the tray; sound never changes on its own.
 - **Fullscreen on the monitor the window is on** (F11), not on the primary monitor.
 - **Focus**: double-click or keys `1`–`9` to show one camera large; `Esc` goes back.
 - **Audio**: a sound button per camera, one playing at a time; volume up to 200% and "voice boost" (speech EQ), saved per camera.
@@ -70,6 +71,7 @@ Details and limitations (RTSP is not encrypted) in [SECURITY.md](SECURITY.md).
 | `F11` | Fullscreen on the current monitor |
 | `Esc` | Leave fullscreen / focus |
 | `1`–`9` / `0` | Focus camera N / back to the mosaic |
+| `Ctrl+1`–`9` | Apply layout N |
 | `M` | Toggle the camera's sound |
 | Arrows / `+` `−` | Move the camera and zoom (with "Mover câmera" on) |
 | `F` | Snapshot of the camera under the mouse |
