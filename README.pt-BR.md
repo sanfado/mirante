@@ -27,7 +27,7 @@
 - **Tela cheia no monitor onde a janela está** (F11), não no monitor principal.
 - **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
 - **Áudio**: um botão de som por câmera, só uma tocando por vez; volume até 200% e “Realçar voz”, salvos por câmera.
-- **Mover a câmera (PTZ)**: em câmeras com ONVIF (como a Tapo C200/C210), setas no vídeo e no teclado; zoom e diagonal em câmeras que suportam.
+- **Mover a câmera (PTZ)**: em câmeras com ONVIF (como a Tapo C200/C210), setas no vídeo e no teclado, posições salvas (“Porta”, “Sofá”) com volta exata; zoom e diagonal em câmeras que suportam.
 - **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
 - **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
 - **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.
