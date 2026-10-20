@@ -28,6 +28,7 @@
 - **Fullscreen on the monitor the window is on** (F11), not on the primary monitor.
 - **Focus**: double-click or keys `1`–`9` to show one camera large; `Esc` goes back.
 - **Audio**: a sound button per camera, one playing at a time; volume up to 200% and "voice boost" (speech EQ), saved per camera.
+- **Move the camera (PTZ)**: on ONVIF cameras (such as Tapo C200/C210), arrows on the video and on the keyboard; zoom and diagonal moves on cameras that support them.
 - **Snapshots** (`F` or the camera's button) saved locally to `Pictures\Mirante`, outside OneDrive.
 - **Automatic reconnection** with diagnosis: tells "password rejected" apart from "camera offline".
 - **Connection test** when adding a camera: checks IP, port and password before saving.
@@ -37,6 +38,11 @@
 
 Built with **TP-Link Tapo** cameras in mind (RTSP `stream1`/`stream2`) and compatible with RTSP cameras in
 general (Intelbras, Hikvision, Dahua, Reolink…) in H.264, H.265 or MJPEG.
+
+PTZ control uses ONVIF and shows up by itself when the camera offers it. It was tested on real
+hardware with a Tapo C210; diagonal moves and zoom follow the ONVIF standard and were tested
+against a simulated camera only. If you try another model, please report back in an
+[issue](https://github.com/sanfado/mirante/issues).
 
 ## Install
 
@@ -65,6 +71,7 @@ Details and limitations (RTSP is not encrypted) in [SECURITY.md](SECURITY.md).
 | `Esc` | Leave fullscreen / focus |
 | `1`–`9` / `0` | Focus camera N / back to the mosaic |
 | `M` | Toggle the camera's sound |
+| Arrows / `+` `−` | Move the camera and zoom (with "Mover câmera" on) |
 | `F` | Snapshot of the camera under the mouse |
 | `Ctrl+N` | Add camera |
 | Double-click | Focus the camera (in a popped-out window: fullscreen) |

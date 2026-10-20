@@ -29,12 +29,14 @@
 - **0.3.0:** volume até 200% e “Realçar voz”, salvos por câmera.
 - **0.3.1:** corrige o áudio da 0.3.0: o equalizador do VLC baixava tudo em 12 dB (acima de 100% e
   com “Realçar voz” o som ficava mais baixo); agora 200% = +12 dB e o realce sobe a voz de verdade.
+- **0.4.0:** mover a câmera (PTZ) via ONVIF: setas no vídeo e no teclado, detecção automática;
+  diagonal e zoom em câmeras que suportam (a Tapo move um eixo por vez e não tem zoom óptico).
 
 ## Próximas versões (propostas, a conversar)
 
 - **Layouts salvos** (ex.: “Noite”, “Garagem grande”) — conversar antes o que um layout guarda.
-- **Controles da câmera (PTZ):** girar/inclinar câmeras como a Tapo C210 pelo app. Estudar:
-  ONVIF (padrão, se a câmera expuser) ou o protocolo próprio da Tapo.
+- **PTZ, próximos passos:** posições salvas (“porta”, “sofá”) com volta exata (a C210 lê e
+  volta à posição com precisão via ONVIF), possivelmente ligadas aos layouts.
 - **Falar pela câmera** (microfone do PC → alto-falante da câmera) e modo **“chamada”**
   (conversa contínua), como no app Tapo. Já verificado (2026-10-20): a Tapo C210 **não** expõe
   saída de áudio via ONVIF (`GetAudioOutputs` vazio), então depende do protocolo próprio da

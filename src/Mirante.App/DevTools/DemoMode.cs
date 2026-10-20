@@ -1,4 +1,4 @@
-﻿#if DEBUG
+#if DEBUG
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;

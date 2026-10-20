@@ -27,6 +27,7 @@
 - **Tela cheia no monitor onde a janela está** (F11), não no monitor principal.
 - **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
 - **Áudio**: um botão de som por câmera, só uma tocando por vez; volume até 200% e “Realçar voz”, salvos por câmera.
+- **Mover a câmera (PTZ)**: em câmeras com ONVIF (como a Tapo C200/C210), setas no vídeo e no teclado; zoom e diagonal em câmeras que suportam.
 - **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
 - **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
 - **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.
@@ -36,6 +37,10 @@
 
 Feito pensando nas câmeras **TP-Link Tapo** (RTSP `stream1`/`stream2`) e compatível com câmeras RTSP em geral
 (Intelbras, Hikvision, Dahua, Reolink…), em H.264, H.265 ou MJPEG.
+
+O controle PTZ usa ONVIF e aparece sozinho quando a câmera o oferece. Foi testado em hardware
+na Tapo C210; diagonal e zoom seguem o padrão ONVIF e foram testados só com uma câmera
+simulada. Se você testar outro modelo, conte como foi numa [issue](https://github.com/sanfado/mirante/issues).
 
 ## Instalação
 
@@ -64,6 +69,7 @@ Detalhes e limitações (RTSP não é criptografado) em [SECURITY.md](SECURITY.m
 | `Esc` | Sai da tela cheia / do foco |
 | `1`–`9` / `0` | Foca a câmera N / volta ao mosaico |
 | `M` | Liga/desliga o som da câmera |
+| Setas / `+` `−` | Movem a câmera e o zoom (com “Mover câmera” ligado) |
 | `F` | Foto da câmera sob o mouse |
 | `Ctrl+N` | Adicionar câmera |
 | Duplo-clique | Foca a câmera (na janela destacada: tela cheia) |

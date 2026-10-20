@@ -17,6 +17,7 @@ GitHub (procurar versões novas do próprio app; nenhum dado do usuário é envi
 | Senhas das câmeras | Gerenciador de Credenciais do Windows (DPAPI, por usuário, não sincroniza). Nunca em JSON, URL ou log. `CameraCredential.ToString()` mascara a senha. |
 | Lista de câmeras (`%APPDATA%\Mirante\cameras.json`) | Sem segredos. Validada ao carregar: host, porta e caminho passam por lista de caracteres permitidos; entradas inválidas são descartadas. Gravação atômica; arquivo corrompido é guardado à parte. |
 | Fotos (`%USERPROFILE%\Pictures\Mirante`) | Pasta local, de propósito fora da pasta “Imagens” que o OneDrive costuma sincronizar. |
+| Controle da câmera (ONVIF, para mover câmeras PTZ) | Senha só como WS-Security `PasswordDigest` (nunca em texto aberto, mesmo que a câmera aceite). Os endereços de serviço que a câmera informa só fornecem o caminho: as requisições vão sempre ao host configurado pelo usuário. Respostas limitadas a 1 MB e lidas sem DTD nem entidades externas. Cada movimento expira sozinho em 2 s, então um “parar” perdido não deixa a câmera girando. |
 | Motor de vídeo (LibVLC) | `--ignore-config` (não herda configurações do VLC instalado), `--keystore=memory` (não persiste credenciais), só os plugins necessários (lista de permitidos no `.csproj`: ~50 de ~330, sem Lua, rede de saída, codificadores ou cofre de senhas em arquivo), sem diálogos de login. Credenciais passadas como opções da mídia, não na URL. |
 | Cadeia de suprimentos | Versões centralizadas e travadas (`Directory.Packages.props` + `packages.lock.json`, restore em modo `--locked-mode` no CI), NuGet Audit em todo build, Dependabot, Actions fixadas por SHA. |
 | Instalação | Por usuário, sem administrador (`%LOCALAPPDATA%\Mirante`). “Iniciar com o Windows” usa só a chave `Run` do usuário. A desinstalação remove essa chave e apaga as senhas do Gerenciador de Credenciais. |
@@ -29,6 +30,9 @@ GitHub (procurar versões novas do próprio app; nenhum dado do usuário é envi
   o vídeo trafega em claro na rede local. O login usa Digest (a senha não trafega em texto),
   mas quem estiver na mesma rede pode ver o vídeo. Recomendação: câmeras numa rede/VLAN
   separada e sem acesso externo (nada de redirecionar a porta 554 no roteador).
-- Digest usa MD5 por exigência do protocolo (RFC 2617), apenas para autenticação.
+- **ONVIF também trafega sem criptografia** (HTTP na rede local, como o RTSP): a senha vai
+  como digest, mas os comandos podem ser vistos por quem estiver na mesma rede.
+- Digest usa MD5 (RTSP, RFC 2617) e SHA-1 (ONVIF, WS-Security) por exigência dos protocolos,
+  apenas para autenticação.
 - Ainda não há instalador assinado (code signing); planejado antes da primeira versão pública.
   Até lá, a integridade das atualizações depende da conta do GitHub do mantenedor (use 2FA).

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mirante.Core.Cameras;
