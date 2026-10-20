@@ -23,6 +23,7 @@ internal sealed partial class CameraTile : UserControl
     private readonly System.Windows.Threading.DispatcherTimer _repaint;
     private CameraTileViewModel? _tile;
     private (uint Width, uint Height)? _videoSize;
+    private Key? _ptzKey;
 
     public CameraTile()
     {
@@ -218,19 +219,38 @@ internal sealed partial class CameraTile : UserControl
 
     private static bool IsArrow(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down;
 
-    /// <summary>Arrow keys move the camera while held (two at once: diagonal), only with the arrows showing.</summary>
-    private bool MoveFromKeyboard()
+    /// <summary>
+    /// Arrow keys move the camera while held, only with the arrows showing. One direction at a time:
+    /// cameras like the Tapo C210 run a diagonal as one axis and then the other, so the last key
+    /// pressed wins, and releasing it goes back to a key still held.
+    /// </summary>
+    private bool MoveFromKeyboard(Key key, bool pressed)
     {
         if (_tile is not { IsPtzMode: true })
         {
             return false;
         }
 
-        static int Axis(Key negative, Key positive) =>
-            (Keyboard.IsKeyDown(positive) ? 1 : 0) - (Keyboard.IsKeyDown(negative) ? 1 : 0);
+        if (pressed)
+        {
+            _ptzKey = key;
+        }
+        else if (key == _ptzKey)
+        {
+            _ptzKey = ((Key[])[Key.Left, Key.Right, Key.Up, Key.Down]).Where(k => k != key && Keyboard.IsKeyDown(k))
+                .Cast<Key?>().FirstOrDefault();
+        }
 
         var speed = Mirante.App.Video.CameraPtz.Speed;
-        _tile.Ptz.StartMove(Axis(Key.Left, Key.Right) * speed, Axis(Key.Down, Key.Up) * speed);
+        var (pan, tilt) = _ptzKey switch
+        {
+            Key.Left => (-speed, 0.0),
+            Key.Right => (speed, 0.0),
+            Key.Up => (0.0, speed),
+            Key.Down => (0.0, -speed),
+            _ => (0.0, 0.0),
+        };
+        _tile.Ptz.StartMove(pan, tilt); // (0, 0) stops
         return true;
     }
 
@@ -238,7 +258,7 @@ internal sealed partial class CameraTile : UserControl
     {
         if (IsArrow(e.Key))
         {
-            e.Handled = MoveFromKeyboard();
+            e.Handled = MoveFromKeyboard(e.Key, pressed: false);
         }
     }
 
@@ -247,6 +267,7 @@ internal sealed partial class CameraTile : UserControl
     {
         if (_tile is { IsPtzMode: true } && Mouse.Captured is not Border)
         {
+            _ptzKey = null;
             _tile.Ptz.StopMove();
         }
     }
@@ -297,7 +318,7 @@ internal sealed partial class CameraTile : UserControl
                 return;
             }
 
-            if (IsArrow(e.Key) && Keyboard.Modifiers == ModifierKeys.None && MoveFromKeyboard())
+            if (IsArrow(e.Key) && Keyboard.Modifiers == ModifierKeys.None && MoveFromKeyboard(e.Key, pressed: true))
             {
                 e.Handled = true;
                 return;
