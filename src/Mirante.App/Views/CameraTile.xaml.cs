@@ -407,10 +407,35 @@ internal sealed partial class CameraTile : UserControl
         }
     }
 
+    /// <summary>"Automático" or a fixed location; only shown when there is more than one.</summary>
+    private void FillLocationMenu()
+    {
+        LocationMenu.Items.Clear();
+        var locations = _tile?.RecordingLocations ?? [];
+        LocationMenu.Visibility = locations.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (_tile is not { } tile || locations.Count <= 1)
+        {
+            return;
+        }
+
+        var current = tile.Stream.Config.RecordingLocation is { } id && locations.Any(l => l.Id == id) ? id : (Guid?)null;
+        var automatic = new MenuItem { Header = "Automático (o primeiro com espaço)", IsChecked = current is null };
+        automatic.Click += (_, _) => tile.SetRecordingLocation(null);
+        LocationMenu.Items.Add(automatic);
+        LocationMenu.Items.Add(new Separator());
+        foreach (var location in locations)
+        {
+            var item = new MenuItem { Header = location.Folder, IsChecked = current == location.Id };
+            item.Click += (_, _) => tile.SetRecordingLocation(location.Id);
+            LocationMenu.Items.Add(item);
+        }
+    }
+
     private void OnMoreClick(object sender, RoutedEventArgs e)
     {
         if (MoreButton.ContextMenu is { } menu)
         {
+            FillLocationMenu();
             menu.DataContext = _tile;
             menu.PlacementTarget = MoreButton;
             menu.IsOpen = true;

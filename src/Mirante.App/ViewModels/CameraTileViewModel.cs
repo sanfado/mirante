@@ -58,6 +58,10 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     public CameraRecorder Recorder { get; }
 
+    public IReadOnlyList<Mirante.Core.Recording.RecordingLocation> RecordingLocations => _owner.RecordingLocations();
+
+    public void SetRecordingLocation(Guid? location) => _owner.SetRecordingLocation(this, location);
+
     public IReadOnlyList<Mirante.Core.Cameras.CameraPosition> Positions => Stream.Config.Positions ?? [];
 
     public void SetPositions(IReadOnlyList<Mirante.Core.Cameras.CameraPosition> positions)

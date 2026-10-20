@@ -2,19 +2,23 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using Mirante.App.Video;
+using Mirante.Core.Cameras;
 using Mirante.Core.Recording;
 using Mirante.Core.Storage;
 
 namespace Mirante.App.Services;
 
 /// <summary>
-/// Housekeeping for every camera's recorder: a new file each hour, stopping (and resuming) when the
-/// disk runs low, deleting old continuous recordings and telling the user when something fails.
+/// Housekeeping for every camera's recorder: where each new file goes (recording locations), a new
+/// file each hour, moving to another disk when one fills up or is unplugged, deleting old
+/// continuous recordings and telling the user when something fails. Disks are measured in the
+/// background (a network folder can take seconds to answer).
 /// </summary>
 internal sealed class RecordingService : IDisposable
 {
     private static readonly TimeSpan CleanupEvery = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan AlertEvery = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan MeasureEvery = TimeSpan.FromSeconds(15);
 
     /// <summary>A recorder must be failing this long before the user is told (camera reboots are short).</summary>
     private static readonly TimeSpan AlertAfter = TimeSpan.FromMinutes(1);
@@ -24,16 +28,20 @@ internal sealed class RecordingService : IDisposable
     private readonly DispatcherTimer _timer;
     private readonly Dictionary<CameraRecorder, DateTime> _failingSince = [];
     private readonly Dictionary<CameraRecorder, DateTime> _alerted = [];
+    private readonly HashSet<Guid> _cannotWrite = [];
+    private IReadOnlyList<LocationState> _states = [];
+    private DateTime _measuredAt;
+    private Task<IReadOnlyList<LocationState>>? _measuring;
     private DateTime _nextCleanup = DateTime.UtcNow.AddMinutes(1);
     private bool _cleaning;
-    private bool _lowDisk;
+    private bool _ticking;
 
     public RecordingService(Func<IReadOnlyList<(string Name, CameraRecorder Recorder)>> recorders,
         SettingsRepository settings, Dispatcher dispatcher)
     {
         _recorders = recorders;
         _settings = settings;
-        _timer = new DispatcherTimer(TimeSpan.FromSeconds(15), DispatcherPriority.Background, (_, _) => Tick(), dispatcher);
+        _timer = new DispatcherTimer(MeasureEvery, DispatcherPriority.Background, (_, _) => _ = TickAsync(), dispatcher);
     }
 
     /// <summary>Something the user should know (shown in the app and, from the tray, as a notification).</summary>
@@ -44,61 +52,149 @@ internal sealed class RecordingService : IDisposable
 
     public int ActiveCount { get; private set; }
 
-    public string Folder => Resolve(_settings.Load());
-
-    public static string Resolve(AppSettings settings) =>
-        settings.RecordingFolder is { } folder && RecordingFiles.IsUsableFolder(folder) ? folder : AppPaths.DefaultRecordingFolder;
+    /// <summary>The recording locations, in order of preference (never empty).</summary>
+    public IReadOnlyList<RecordingLocation> Locations =>
+        RecordingStorage.Normalize(_settings.Load().RecordingLocations, AppPaths.DefaultRecordingFolder);
 
     public void Start() => _timer.Start();
 
-    /// <summary>Runs the checks now (e.g. right after recording was turned on).</summary>
-    public void Tick()
-    {
-        var recorders = _recorders();
-        var folder = Folder;
+    public void Dispose() => _timer.Stop();
 
-        // Low disk: stop everything and start again once there is room.
-        var low = recorders.Any(r => r.Recorder.IsWanted) && FreeBytes(folder) is { } free && free < RecordingFiles.MinimumFreeBytes;
-        if (low != _lowDisk)
+    /// <summary>The folder for a camera's next file; null when no disk can take it.</summary>
+    public async Task<string?> FolderForAsync(CameraConfig camera)
+    {
+        var locations = Locations;
+        var states = await StatesAsync(locations);
+        var fixedLocation = camera.RecordingLocation is { } id && locations.Any(l => l.Id == id) ? id : (Guid?)null;
+        return RecordingStorage.Choose(states, fixedLocation)?.Folder;
+    }
+
+    /// <summary>Measures every location now (for the settings window).</summary>
+    public static Task<IReadOnlyList<LocationState>> MeasureAsync(IReadOnlyList<RecordingLocation> locations) =>
+        Task.Run(() => Measure(locations));
+
+    /// <summary>Runs the checks now (e.g. right after the settings changed).</summary>
+    public void Refresh()
+    {
+        _measuredAt = default;
+        _ = TickAsync();
+    }
+
+    private async Task<IReadOnlyList<LocationState>> StatesAsync(IReadOnlyList<RecordingLocation> locations)
+    {
+        var fresh = DateTime.UtcNow - _measuredAt < MeasureEvery
+                    && _states.Select(s => s.Location).SequenceEqual(locations);
+        if (fresh)
         {
-            _lowDisk = low;
-            foreach (var (_, recorder) in recorders)
+            return _states;
+        }
+
+        // One measurement at a time; recorders starting together share it.
+        _measuring ??= MeasureAsync(locations);
+        try
+        {
+            _states = await _measuring;
+            _measuredAt = DateTime.UtcNow;
+        }
+        finally
+        {
+            _measuring = null;
+        }
+
+        return _states;
+    }
+
+    private async Task TickAsync()
+    {
+        if (_ticking)
+        {
+            return;
+        }
+
+        _ticking = true;
+        try
+        {
+            var locations = Locations;
+            _measuredAt = default;
+            var states = await StatesAsync(locations);
+            var recorders = _recorders();
+            ReportLocations(states, recorders.Any(r => r.Recorder.IsWanted));
+
+            var now = DateTime.Now;
+            foreach (var (name, recorder) in recorders)
             {
-                recorder.SetBlocked(low, "Pouco espaço em disco (menos de 5 GB livres)");
+                recorder.RotateIfDue(now);
+                if (recorder.CurrentFile is { } file && ShouldMove(recorder, file, locations, states))
+                {
+                    recorder.Restart(); // the next file goes wherever there is room now
+                }
+
+                WatchForFailures(name, recorder);
             }
 
-            Alert?.Invoke(low ? "Gravação parada: menos de 5 GB livres no disco das gravações"
-                : "Há espaço em disco de novo; a gravação voltou");
-        }
+            var active = recorders.Count(r => r.Recorder.State == RecordingState.Recording);
+            if (active != ActiveCount)
+            {
+                ActiveCount = active;
+                ActiveChanged?.Invoke(active);
+            }
 
-        var now = DateTime.Now;
-        foreach (var (name, recorder) in recorders)
-        {
-            recorder.RotateIfDue(now);
-            WatchForFailures(name, recorder);
+            if (DateTime.UtcNow >= _nextCleanup && !_cleaning)
+            {
+                _nextCleanup = DateTime.UtcNow + CleanupEvery;
+                var days = RecordingFiles.ClampRetentionDays(_settings.Load().RecordingRetentionDays);
+                var inUse = recorders.Select(r => r.Recorder.CurrentFile).OfType<string>()
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                _cleaning = true;
+                try
+                {
+                    await Task.Run(() => Cleanup(locations, days, inUse));
+                }
+                finally
+                {
+                    _cleaning = false;
+                }
+            }
         }
-
-        var active = recorders.Count(r => r.Recorder.State == RecordingState.Recording);
-        if (active != ActiveCount)
+        finally
         {
-            ActiveCount = active;
-            ActiveChanged?.Invoke(active);
-        }
-
-        if (DateTime.UtcNow >= _nextCleanup && !_cleaning)
-        {
-            _nextCleanup = DateTime.UtcNow + CleanupEvery;
-            var settings = _settings.Load();
-            var inUse = recorders.Select(r => r.Recorder.CurrentFile).OfType<string>()
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            _cleaning = true;
-            _ = Task.Run(() => Cleanup(folder, RecordingFiles.ClampRetentionDays(settings.RecordingRetentionDays),
-                    RecordingFiles.ClampMaxGigabytes(settings.RecordingMaxGigabytes) * 1024L * 1024 * 1024, inUse))
-                .ContinueWith(_ => _cleaning = false, TaskScheduler.FromCurrentSynchronizationContext());
+            _ticking = false;
         }
     }
 
-    public void Dispose() => _timer.Stop();
+    /// <summary>
+    /// The file being written is on a disk that can't take more (full, unplugged, location removed),
+    /// or a camera fixed to a location is writing elsewhere and that location is back.
+    /// </summary>
+    private static bool ShouldMove(CameraRecorder recorder, string file, IReadOnlyList<RecordingLocation> locations,
+        IReadOnlyList<LocationState> states)
+    {
+        var current = RecordingStorage.LocationOf(locations, file);
+        if (current is null || states.FirstOrDefault(s => s.Location.Id == current.Id) is not { CanWrite: true })
+        {
+            return true;
+        }
+
+        return recorder.FixedLocation is { } wanted && wanted != current.Id
+               && states.FirstOrDefault(s => s.Location.Id == wanted) is { CanWrite: true };
+    }
+
+    private void ReportLocations(IReadOnlyList<LocationState> states, bool recording)
+    {
+        foreach (var state in states)
+        {
+            var changed = state.CanWrite ? _cannotWrite.Remove(state.Location.Id) : _cannotWrite.Add(state.Location.Id);
+            if (!changed || !recording)
+            {
+                continue;
+            }
+
+            var others = states.Any(s => s.CanWrite && s.Location.Id != state.Location.Id);
+            Alert?.Invoke(state.CanWrite ? $"O local de gravação {state.Location.Folder} está disponível de novo"
+                : !state.Available ? $"O local de gravação {state.Location.Folder} não está acessível (disco desconectado?){(others ? "; gravando em outro local" : "; gravação parada")}"
+                : $"O local de gravação {state.Location.Folder} tem menos de 5 GB livres{(others ? "; gravando em outro local" : "; gravação parada")}");
+        }
+    }
 
     private void WatchForFailures(string name, CameraRecorder recorder)
     {
@@ -122,31 +218,57 @@ internal sealed class RecordingService : IDisposable
         }
     }
 
-    /// <summary>Deletes what the limits say (only Mirante's own files) and the folders left empty.</summary>
-    private static void Cleanup(string folder, int retentionDays, long maxBytes, IReadOnlySet<string> inUse)
+    private static IReadOnlyList<LocationState> Measure(IReadOnlyList<RecordingLocation> locations) =>
+        [.. locations.Select(location =>
+        {
+            var root = Path.GetPathRoot(location.Folder);
+            var available = !string.IsNullOrEmpty(root) && Directory.Exists(root);
+            if (!available)
+            {
+                return new LocationState(location, false, 0, 0, null);
+            }
+
+            var files = RecordingFiles.Scan(location.Folder);
+            var oldest = files.Where(f => f.Kind == RecordingKind.Continuous).Select(f => (DateTime?)f.LastWriteUtc).Min();
+            return new LocationState(location, true, FreeBytes(location.Folder) ?? 0, files.Sum(f => f.Size), oldest);
+        })];
+
+    /// <summary>
+    /// Per location: continuous recordings older than the retention, then the oldest ones until it
+    /// fits its limit. Only Mirante's own files, never manual ones or files being written.
+    /// </summary>
+    private static void Cleanup(IReadOnlyList<RecordingLocation> locations, int retentionDays, IReadOnlySet<string> inUse)
+    {
+        foreach (var location in locations)
+        {
+            try
+            {
+                var files = RecordingFiles.Scan(location.Folder);
+                foreach (var file in RecordingFiles.SelectForCleanup(files, DateTime.UtcNow, retentionDays, location.MaxBytes, inUse))
+                {
+                    Delete(file.Path);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Debug.WriteLine($"Limpeza: {ex.Message}");
+            }
+        }
+    }
+
+    private static void Delete(string path)
     {
         try
         {
-            var files = RecordingFiles.Scan(folder);
-            foreach (var file in RecordingFiles.SelectForCleanup(files, DateTime.UtcNow, retentionDays, maxBytes, inUse))
+            File.Delete(path);
+            var day = Path.GetDirectoryName(path)!;
+            if (!Directory.EnumerateFileSystemEntries(day).Any())
             {
-                try
+                Directory.Delete(day);
+                var camera = Path.GetDirectoryName(day)!;
+                if (!Directory.EnumerateFileSystemEntries(camera).Any())
                 {
-                    File.Delete(file.Path);
-                    var day = Path.GetDirectoryName(file.Path)!;
-                    if (!Directory.EnumerateFileSystemEntries(day).Any())
-                    {
-                        Directory.Delete(day);
-                        var camera = Path.GetDirectoryName(day)!;
-                        if (!Directory.EnumerateFileSystemEntries(camera).Any())
-                        {
-                            Directory.Delete(camera);
-                        }
-                    }
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    Debug.WriteLine($"Limpeza: {ex.Message}");
+                    Directory.Delete(camera);
                 }
             }
         }

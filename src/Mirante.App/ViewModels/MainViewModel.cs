@@ -73,7 +73,7 @@ internal sealed partial class MainViewModel : ObservableObject
     private int _defaultVolume = AudioBoost.DefaultVolume;
 
     public MainViewModel(CameraRepository cameras, ICredentialStore credentials, VideoEngine engine,
-        Func<string> snapshotFolder, Func<string> recordingFolder, Dispatcher dispatcher)
+        Func<string> snapshotFolder, Func<CameraConfig, Task<string?>> recordingFolder, Dispatcher dispatcher)
     {
         _cameras = cameras;
         _credentials = credentials;
@@ -100,7 +100,22 @@ internal sealed partial class MainViewModel : ObservableObject
 
     public Func<string> SnapshotFolder { get; set; }
 
-    public Func<string> RecordingFolder { get; set; }
+    /// <summary>Where a camera's next recording goes (see RecordingService); null: nowhere now.</summary>
+    public Func<CameraConfig, Task<string?>> RecordingFolder { get; set; }
+
+    /// <summary>The recording locations, for the camera menu.</summary>
+    public Func<IReadOnlyList<Mirante.Core.Recording.RecordingLocation>> RecordingLocations { get; set; } = () => [];
+
+    /// <summary>"Automático" (null) or a fixed location; the next file goes there.</summary>
+    public void SetRecordingLocation(CameraTileViewModel tile, Guid? location)
+    {
+        tile.Stream.UpdateRecordingLocation(location);
+        Save();
+        if (tile.Recorder.IsWanted)
+        {
+            tile.Recorder.Restart();
+        }
+    }
 
     /// <summary>Every camera's recorder, with its name (for the recording service).</summary>
     public IReadOnlyList<(string Name, CameraRecorder Recorder)> Recorders => [.. Tiles.Select(t => (t.Name, t.Recorder))];
@@ -108,8 +123,10 @@ internal sealed partial class MainViewModel : ObservableObject
     /// <summary>"Gravar agora" / stop.</summary>
     public void ToggleRecording(CameraTileViewModel tile)
     {
+        var file = tile.Recorder.CurrentFile;
         tile.Recorder.ToggleManual();
-        Shell?.ShowToast(tile.Recorder.IsManual ? $"Gravando {tile.Name}" : $"Gravação de {tile.Name} salva", tile.Recorder.IsManual ? null : RecordingFolder());
+        Shell?.ShowToast(tile.Recorder.IsManual ? $"Gravando {tile.Name}" : $"Gravação de {tile.Name} salva",
+            tile.Recorder.IsManual || file is null ? null : Path.GetDirectoryName(file));
     }
 
     public void SetContinuousRecording(CameraTileViewModel tile, bool on)
@@ -489,7 +506,7 @@ internal sealed partial class MainViewModel : ObservableObject
     private CameraTileViewModel CreateTile(CameraConfig config)
     {
         var stream = new CameraStream(config, _engine, _credentials, _dispatcher) { DefaultVolume = _defaultVolume };
-        var recorder = new CameraRecorder(_engine, _credentials, () => stream.Config, () => RecordingFolder(), _dispatcher);
+        var recorder = new CameraRecorder(_engine, _credentials, () => stream.Config, c => RecordingFolder(c), _dispatcher);
         if (config.ContinuousRecording)
         {
             recorder.SetContinuous(true);

@@ -59,9 +59,25 @@ internal static class DemoMode
     public static async Task RunAsync(MainWindow window, MainViewModel viewModel, SettingsRepository settings, string output)
     {
         Directory.CreateDirectory(output);
-        // Never the user's real recordings folder.
-        var recordings = Directory.CreateDirectory(Path.Combine(output, "gravacoes")).FullName;
-        viewModel.RecordingFolder = () => recordings;
+        // Two recording locations of its own (never the user's real folder). The first is "full":
+        // a 1 GB limit and a fake 1.1 GB recording, so new files must go to the second.
+        var disk1 = Directory.CreateDirectory(Path.Combine(output, "gravacoes-1")).FullName;
+        var disk2 = Directory.CreateDirectory(Path.Combine(output, "gravacoes-2")).FullName;
+        var filler = Directory.CreateDirectory(Path.Combine(disk1, "Antiga", "2026-01-01")).FullName;
+        using (var fake = File.Create(Path.Combine(filler, "00-00-00 contínua.mkv")))
+        {
+            fake.SetLength(1100L * 1024 * 1024);
+        }
+
+        settings.Save(settings.Load() with
+        {
+            RecordingLocations =
+            [
+                new Mirante.Core.Recording.RecordingLocation { Id = Guid.NewGuid(), Folder = disk1, MaxGigabytes = 1 },
+                new Mirante.Core.Recording.RecordingLocation { Id = Guid.NewGuid(), Folder = disk2 },
+            ],
+        });
+        var recordings = output;
         await Task.Delay(7000);
         Capture(window, output, "01-mosaico");
         File.WriteAllLines(Path.Combine(output, "00-status-e-fotos.txt"), StatusReport.Describe(viewModel, output));
@@ -194,7 +210,8 @@ internal static class DemoMode
             RenderElement(window.TitleBar, output, "01h-barra-layouts");
 
             // REC badge on a camera being recorded (demo clips: the file is just copied).
-            var recorded = viewModel.Tiles.First(t => t.IsVisibleInGrid);
+            var recorded = viewModel.Tiles.First(t => t.Status == Video.StreamStatus.Live);
+            viewModel.FocusedTile = recorded;
             viewModel.ToggleRecording(recorded);
             await Task.Delay(2500);
             if (FindTile(window, recorded) is { } recordedView)
@@ -202,9 +219,11 @@ internal static class DemoMode
                 RenderElement(recordedView.Overlay, output, "01j-gravando");
             }
 
+            var chosen = recorded.Recorder.CurrentFile ?? recorded.Recorder.LastFile ?? "-";
             log.Add($"gravando: estado={recorded.Recorder.State} selo=\"{recorded.Recorder.Badge}\"");
             viewModel.ToggleRecording(recorded);
             await Task.Delay(2000);
+            log.Add($"local 1 cheio -> arquivo aberto no local 2: {chosen.StartsWith(disk2, StringComparison.OrdinalIgnoreCase)}");
             log.Add($"parada: estado={recorded.Recorder.State} arquivos={Directory.EnumerateFiles(recordings, "*.mkv", SearchOption.AllDirectories).Count()}");
             viewModel.FocusByNumber(0);
             viewModel.SetExcluded([]);

@@ -214,6 +214,7 @@
                                     <MenuItem Header="Gravação contínua" Command="{Binding ToggleContinuousCommand}"
                                               IsChecked="{Binding Recorder.IsContinuous, Mode=OneWay}"
                                               ToolTip="Grava sempre que o Mirante estiver aberto, inclusive na bandeja" />
+                                    <MenuItem x:Name="LocationMenu" Header="Local de gravação" Icon="{ui:SymbolIcon HardDrive20}" />
                                     <MenuItem Header="Organizar câmeras…" Command="{Binding OrganizeCommand}"
                                               Icon="{ui:SymbolIcon ArrowSort24}" />
                                     <Separator />

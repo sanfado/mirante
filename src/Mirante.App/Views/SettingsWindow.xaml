@@ -63,38 +63,20 @@
             </ui:CardControl>
 
             <TextBlock Style="{StaticResource SectionTitle}" Text="Gravações" />
-            <ui:CardControl Icon="{ui:SymbolIcon VideoClip24}">
-                <ui:CardControl.Header>
-                    <StackPanel>
-                        <TextBlock FontSize="13.5" Text="Pasta das gravações" />
-                        <TextBlock x:Name="RecordingFolderText" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="260"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
-                </ui:CardControl.Header>
-                <StackPanel Orientation="Horizontal">
-                    <ui:Button Appearance="Secondary" Content="Abrir" Click="OnOpenRecordingFolderClick" />
-                    <ui:Button Margin="8,0,0,0" Appearance="Secondary" Content="Alterar…" Click="OnChangeRecordingFolderClick" />
-                </StackPanel>
-            </ui:CardControl>
-            <ui:CardControl Margin="0,4,0,0" Icon="{ui:SymbolIcon CalendarClock24}">
+            <TextBlock Margin="2,-2,0,8" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="Locais onde as gravações ficam, por exemplo um HD para cada. As câmeras em “Automático” gravam no primeiro local com espaço, nesta ordem; ao atingir o limite, passam para o próximo, e com todos cheios as contínuas mais antigas dão lugar às novas. No menu de cada câmera dá para fixá-la num local." />
+            <StackPanel x:Name="LocationList" />
+            <ui:Button x:Name="AddLocationButton" Margin="0,6,0,0" Appearance="Secondary" Icon="{ui:SymbolIcon Add24}"
+                       Content="Adicionar local…" Click="OnAddLocationClick" />
+            <ui:CardControl Margin="0,10,0,0" Icon="{ui:SymbolIcon CalendarClock24}">
                 <ui:CardControl.Header>
                     <StackPanel>
                         <TextBlock FontSize="13.5" Text="Apagar gravações contínuas depois de" />
                         <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Text="As gravações manuais (“Gravar agora”) nunca são apagadas automaticamente." />
+                                   Text="Uma câmera 2K gravando sem parar usa cerca de 13 GB por dia. As gravações manuais (“Gravar agora”) nunca são apagadas automaticamente." />
                     </StackPanel>
                 </ui:CardControl.Header>
                 <ComboBox x:Name="RetentionBox" MinWidth="130" SelectionChanged="OnRetentionChanged" />
-            </ui:CardControl>
-            <ui:CardControl Margin="0,4,0,0" Icon="{ui:SymbolIcon HardDrive20}">
-                <ui:CardControl.Header>
-                    <StackPanel>
-                        <TextBlock FontSize="13.5" Text="Espaço máximo das gravações" />
-                        <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Text="Uma câmera 2K gravando sem parar usa cerca de 13 GB por dia. Passando do limite, as contínuas mais antigas são apagadas; com menos de 5 GB livres no disco, a gravação para e avisa." />
-                    </StackPanel>
-                </ui:CardControl.Header>
-                <ComboBox x:Name="SpaceBox" MinWidth="130" SelectionChanged="OnSpaceChanged" />
             </ui:CardControl>
 
             <TextBlock Style="{StaticResource SectionTitle}" Text="Inicialização" />

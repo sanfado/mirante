@@ -25,6 +25,9 @@ public sealed record CameraConfig
     /// <summary>Records all the time while the app is open (in the tray too).</summary>
     public bool ContinuousRecording { get; init; }
 
+    /// <summary>Recording location this camera always uses; null = "Automático" (first one with room).</summary>
+    public Guid? RecordingLocation { get; init; }
+
     /// <summary>Saved pan/tilt positions (cameras with PTZ). Null in files written before they existed.</summary>
     public IReadOnlyList<CameraPosition>? Positions { get; init; }
 

@@ -243,7 +243,30 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
 
     private void OnOpenSnapshotsClick(object sender, RoutedEventArgs e) => OpenFolder(_viewModel.SnapshotFolder());
 
-    private void OnOpenRecordingsClick(object sender, RoutedEventArgs e) => OpenFolder(_recordings.Folder);
+    /// <summary>One location: open it. Several: pick which.</summary>
+    private void OnOpenRecordingsClick(object sender, RoutedEventArgs e)
+    {
+        var locations = _recordings.Locations;
+        if (locations.Count == 1)
+        {
+            OpenFolder(locations[0].Folder);
+            return;
+        }
+
+        var menu = new System.Windows.Controls.ContextMenu
+        {
+            PlacementTarget = (UIElement)sender,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+        };
+        foreach (var location in locations)
+        {
+            var item = new System.Windows.Controls.MenuItem { Header = location.Folder, Icon = new SymbolIcon(SymbolRegular.HardDrive20) };
+            item.Click += (_, _) => OpenFolder(location.Folder);
+            menu.Items.Add(item);
+        }
+
+        menu.IsOpen = true;
+    }
 
     /// <summary>In the app when it's on screen; from the tray icon (a Windows notification) when it isn't.</summary>
     private void OnRecordingAlert(string message)
@@ -261,7 +284,7 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
         new SettingsWindow(_settings, UpdateTrayIcon, _updates, ApplyUpdate) { Owner = this }.ShowDialog();
-        _recordings.Tick(); // a new folder or limits apply right away
+        _recordings.Refresh(); // new locations or limits apply right away
     }
 
     private void OnToastClick(object sender, MouseButtonEventArgs e)

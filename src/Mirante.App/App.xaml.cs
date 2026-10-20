@@ -76,11 +76,18 @@ public partial class App : Application
         }
 #endif
         var snapshotSettings = settingsRepository;
-        _viewModel = new MainViewModel(cameras, credentials, _engine,
+        MainViewModel? viewModel = null;
+        var recordingSettings = settingsRepository;
+#if DEBUG
+        recordingSettings = DevTools.StatusReport.RecordTestSettings() ?? recordingSettings;
+#endif
+        var recordings = _recordings = new RecordingService(() => viewModel?.Recorders ?? [], recordingSettings, Dispatcher);
+        _viewModel = viewModel = new MainViewModel(cameras, credentials, _engine,
             () => snapshotSettings.Load().SnapshotFolder ?? AppPaths.DefaultSnapshotFolder,
-            () => RecordingService.Resolve(snapshotSettings.Load()), Dispatcher);
-        var viewModel = _viewModel;
-        _recordings = new RecordingService(() => viewModel.Recorders, settingsRepository, Dispatcher);
+            recordings.FolderForAsync, Dispatcher)
+        {
+            RecordingLocations = () => recordings.Locations,
+        };
 
         var updates = new UpdateService(Dispatcher);
         var window = new MainWindow(_viewModel, settingsRepository, updates, _recordings);

@@ -38,11 +38,9 @@ internal sealed partial class SettingsWindow : FluentWindow
             _ => 0,
         };
         FolderText.Text = CurrentFolder(settings);
-        RecordingFolderText.Text = RecordingService.Resolve(settings);
         Fill(RetentionBox, [1, 3, 7, 14, 30, 90], RecordingFiles.ClampRetentionDays(settings.RecordingRetentionDays),
             d => d == 1 ? "1 dia" : $"{d} dias");
-        Fill(SpaceBox, [25, 50, 100, 250, 500, 1000, 2000], RecordingFiles.ClampMaxGigabytes(settings.RecordingMaxGigabytes),
-            g => g >= 1000 ? $"{g / 1000.0:0.#} TB" : $"{g} GB");
+        _ = ShowLocationsAsync();
         VersionText.Text = $"Mirante {AppInfo.Version}";
         _loading = false;
     }
@@ -97,43 +95,127 @@ internal sealed partial class SettingsWindow : FluentWindow
         }
     }
 
-    private void OnSpaceChanged(object sender, SelectionChangedEventArgs e)
+    // ----- Recording locations -----
+
+    private IReadOnlyList<RecordingLocation> Locations =>
+        RecordingStorage.Normalize(_repository.Load().RecordingLocations, AppPaths.DefaultRecordingFolder);
+
+    private void SaveLocations(IEnumerable<RecordingLocation> locations)
     {
-        if (!_loading && SpaceBox.SelectedItem is ComboBoxItem { Tag: int gigabytes })
+        _repository.Save(_repository.Load() with { RecordingLocations = [.. locations] });
+        _ = ShowLocationsAsync();
+    }
+
+    /// <summary>One card per location; usage and free space are measured in the background.</summary>
+    private async Task ShowLocationsAsync()
+    {
+        var locations = Locations;
+        LocationList.Children.Clear();
+        var details = new Dictionary<Guid, System.Windows.Controls.TextBlock>();
+        for (var i = 0; i < locations.Count; i++)
         {
-            _repository.Save(_repository.Load() with { RecordingMaxGigabytes = gigabytes });
+            var location = locations[i];
+            var detail = new System.Windows.Controls.TextBlock
+            {
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Text = "Medindo…",
+            };
+            detail.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
+            details[location.Id] = detail;
+
+            var limit = new ComboBox { MinWidth = 110, ToolTip = "Espaço máximo das gravações neste local" };
+            Fill(limit, [25, 50, 100, 250, 500, 1000, 2000, 4000], location.Gigabytes, g => g >= 1000 ? $"{g / 1000.0:0.#} TB" : $"{g} GB");
+            limit.SelectionChanged += (_, _) =>
+            {
+                if (limit.SelectedItem is ComboBoxItem { Tag: int gigabytes })
+                {
+                    SaveLocations(Locations.Select(l => l.Id == location.Id ? l with { MaxGigabytes = gigabytes } : l));
+                }
+            };
+
+            var open = new Wpf.Ui.Controls.Button { Margin = new Thickness(8, 0, 0, 0), Appearance = ControlAppearance.Secondary, Content = "Abrir" };
+            open.Click += (_, _) => MainWindow.OpenFolder(location.Folder);
+            var remove = new Wpf.Ui.Controls.Button
+            {
+                Margin = new Thickness(8, 0, 0, 0),
+                Appearance = ControlAppearance.Secondary,
+                Icon = new SymbolIcon(SymbolRegular.Delete24),
+                ToolTip = "Deixar de usar este local (as gravações que já estão lá continuam no disco)",
+                IsEnabled = locations.Count > 1,
+            };
+            remove.Click += (_, _) => SaveLocations(Locations.Where(l => l.Id != location.Id));
+
+            var header = new StackPanel();
+            header.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                FontSize = 13.5,
+                Text = $"{i + 1}. {location.Folder}",
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 240,
+                ToolTip = location.Folder,
+            });
+            header.Children.Add(detail);
+            var actions = new StackPanel { Orientation = Orientation.Horizontal };
+            actions.Children.Add(limit);
+            actions.Children.Add(open);
+            actions.Children.Add(remove);
+            LocationList.Children.Add(new CardControl
+            {
+                Margin = new Thickness(0, i == 0 ? 0 : 4, 0, 0),
+                Icon = new SymbolIcon(SymbolRegular.HardDrive20),
+                Header = header,
+                Content = actions,
+            });
+        }
+
+        AddLocationButton.IsEnabled = locations.Count < RecordingStorage.MaxLocations;
+        foreach (var state in await RecordingService.MeasureAsync(locations))
+        {
+            if (details.TryGetValue(state.Location.Id, out var detail))
+            {
+                detail.Text = !state.Available ? "Não acessível agora (disco desconectado?)"
+                    : $"Usando {Size(state.UsedBytes)} de {state.Location.Gigabytes} GB · {Size(state.FreeBytes)} livres no disco"
+                      + (state.CanWrite ? string.Empty : " · menos de 5 GB livres: não grava aqui");
+            }
         }
     }
 
-    private void OnOpenRecordingFolderClick(object sender, RoutedEventArgs e) =>
-        MainWindow.OpenFolder(RecordingService.Resolve(_repository.Load()));
+    private static string Size(long bytes) => bytes >= 1024L * 1024 * 1024
+        ? $"{bytes / (1024.0 * 1024 * 1024):0.#} GB"
+        : $"{bytes / (1024.0 * 1024):0} MB";
 
-    private void OnChangeRecordingFolderClick(object sender, RoutedEventArgs e)
+    private void OnAddLocationClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog
-        {
-            Title = "Escolha onde salvar as gravações",
-            InitialDirectory = RecordingService.Resolve(_repository.Load()),
-        };
+        var dialog = new OpenFolderDialog { Title = "Escolha um local para as gravações (por exemplo, outro HD)" };
         if (dialog.ShowDialog(this) != true)
         {
             return;
         }
 
-        if (!RecordingFiles.IsUsableFolder(dialog.FolderName))
+        var folder = Path.TrimEndingDirectorySeparator(dialog.FolderName);
+        var locations = Locations;
+        string? problem = !RecordingFiles.IsUsableFolder(folder)
+            ? "O caminho dessa pasta tem aspas ou chaves ({ }), que o motor de vídeo não aceita."
+            : locations.Any(l => Overlaps(l.Folder, folder))
+                ? "Essa pasta já é um local de gravação, ou fica dentro de um (ou contém um). Escolha uma pasta separada."
+                : null;
+        if (problem is not null)
         {
-            _ = new Wpf.Ui.Controls.MessageBox
-            {
-                Owner = this,
-                Title = "Pasta não pode ser usada",
-                Content = "O caminho dessa pasta tem aspas ou chaves ({ }), que o motor de vídeo não aceita. Escolha outra pasta.",
-                CloseButtonText = "OK",
-            }.ShowDialogAsync();
+            _ = new Wpf.Ui.Controls.MessageBox { Owner = this, Title = "Local não pode ser usado", Content = problem, CloseButtonText = "OK" }
+                .ShowDialogAsync();
             return;
         }
 
-        _repository.Save(_repository.Load() with { RecordingFolder = dialog.FolderName });
-        RecordingFolderText.Text = dialog.FolderName;
+        SaveLocations([.. locations, new RecordingLocation { Id = Guid.NewGuid(), Folder = folder }]);
+    }
+
+    /// <summary>Same folder, or one inside the other (recordings would be counted twice).</summary>
+    private static bool Overlaps(string a, string b)
+    {
+        static string Dir(string p) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(p)) + Path.DirectorySeparatorChar;
+        var (x, y) = (Dir(a), Dir(b));
+        return x.StartsWith(y, StringComparison.OrdinalIgnoreCase) || y.StartsWith(x, StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnStartupToggled(object sender, RoutedEventArgs e)

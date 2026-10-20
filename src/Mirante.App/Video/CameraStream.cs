@@ -117,6 +117,9 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
     /// <summary>Continuous recording turned on/off: nothing to reconnect (recording has its own connection).</summary>
     public void UpdateContinuousRecording(bool on) => Config = Config with { ContinuousRecording = on };
 
+    /// <summary>Recording location changed: nothing to reconnect.</summary>
+    public void UpdateRecordingLocation(Guid? location) => Config = Config with { RecordingLocation = location };
+
     /// <summary>Saved positions changed: nothing to reconnect.</summary>
     public void UpdatePositions(IReadOnlyList<CameraPosition> positions) => Config = Config with { Positions = positions };
 

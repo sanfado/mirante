@@ -41,6 +41,10 @@ public sealed class SettingsRepository(string filePath)
                 .DistinctBy(l => l.Id)
                 .Take(LayoutPreset.MaxCount)],
             HiddenCameras = [.. (settings.HiddenCameras ?? []).Distinct()],
+            RecordingLocations = [.. (settings.RecordingLocations ?? [])
+                .Where(l => l is not null && l.Id != Guid.Empty && Recording.RecordingFiles.IsUsableFolder(l.Folder))
+                .DistinctBy(l => l.Id)
+                .Take(Recording.RecordingStorage.MaxLocations)],
         }
         : new AppSettings();
 

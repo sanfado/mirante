@@ -11,6 +11,25 @@ namespace Mirante.App.DevTools;
 /// </summary>
 internal static class StatusReport
 {
+    /// <summary>
+    /// With MIRANTE_RECORD_TEST=&lt;folder&gt;: settings whose only recording location is inside that
+    /// folder, for the app's recording service (so the test never touches the user's folders).
+    /// </summary>
+    public static Mirante.Core.Storage.SettingsRepository? RecordTestSettings()
+    {
+        if (Environment.GetEnvironmentVariable("MIRANTE_RECORD_TEST") is not { Length: > 0 } folder)
+        {
+            return null;
+        }
+
+        var settings = new Mirante.Core.Storage.SettingsRepository(Path.Combine(folder, "settings.json"));
+        settings.Save(new Mirante.Core.Storage.AppSettings
+        {
+            RecordingLocations = [new Mirante.Core.Recording.RecordingLocation { Id = Guid.NewGuid(), Folder = Path.Combine(folder, "local") }],
+        });
+        return settings;
+    }
+
     public static bool TryParse(string[] args, out string file)
     {
         var i = Array.IndexOf(args, "--status-report");
@@ -46,7 +65,7 @@ internal static class StatusReport
         if (Environment.GetEnvironmentVariable("MIRANTE_RECORD_TEST") is { Length: > 0 } recordFolder
             && viewModel.Tiles.FirstOrDefault() is { } camera)
         {
-            viewModel.RecordingFolder = () => recordFolder;
+            // The app's own recording service already uses RecordTestSettings (see App).
             var recorder = camera.Recorder;
             void Step(string what) => lines.Add(
                 $"gravação {what}: estado={recorder.State} selo=\"{recorder.Badge}\" problema={recorder.Problem ?? "-"} vídeo={camera.Status} arquivos={Files()}");

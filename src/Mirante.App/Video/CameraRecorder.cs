@@ -40,7 +40,7 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
     private readonly VideoEngine _engine;
     private readonly ICredentialStore _credentials;
     private readonly Func<CameraConfig> _config;
-    private readonly Func<string> _folder;
+    private readonly Func<CameraConfig, Task<string?>> _folder;
     private readonly Dispatcher _dispatcher;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly DispatcherTimer _watchdog;
@@ -48,7 +48,6 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
     private CancellationTokenSource? _retry;
     private int _attempt;
     private bool _continuous;
-    private bool _blocked;
     private bool _disposed;
 
     [ObservableProperty]
@@ -68,8 +67,9 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(Badge))]
     private DateTime? _manualSince;
 
+    /// <param name="folder">Where the camera's next file goes (its recording location); null: nowhere now.</param>
     public CameraRecorder(VideoEngine engine, ICredentialStore credentials, Func<CameraConfig> config,
-        Func<string> folder, Dispatcher dispatcher)
+        Func<CameraConfig, Task<string?>> folder, Dispatcher dispatcher)
     {
         _engine = engine;
         _credentials = credentials;
@@ -87,6 +87,12 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
 
     /// <summary>The file being written, if any (never deleted by the cleanup).</summary>
     public string? CurrentFile => _session?.Path;
+
+    /// <summary>The last file closed (to point the user to it).</summary>
+    public string? LastFile { get; private set; }
+
+    /// <summary>The location the camera is fixed to, if any (null: "Automático").</summary>
+    public Guid? FixedLocation => _config().RecordingLocation;
 
     public bool HasBadge => Badge is not null;
 
@@ -109,7 +115,7 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
         : ManualSince is { } since ? $"● REC {Elapsed(DateTime.Now - since)}"
         : "● REC";
 
-    private RecordingKind? Desired => _disposed || _blocked ? null
+    private RecordingKind? Desired => _disposed ? null
         : IsManual ? RecordingKind.Manual
         : _continuous ? RecordingKind.Continuous
         : null;
@@ -131,19 +137,6 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
         _ = ReconcileAsync();
     }
 
-    /// <summary>Low disk space or an unusable folder: stop, and start again once it's solved.</summary>
-    public void SetBlocked(bool blocked, string? reason)
-    {
-        if (_blocked == blocked)
-        {
-            return;
-        }
-
-        _blocked = blocked;
-        Problem = blocked ? reason : null;
-        _ = ReconcileAsync();
-    }
-
     /// <summary>New hour: continuous recordings move to a new file.</summary>
     public void RotateIfDue(DateTime now)
     {
@@ -154,7 +147,10 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>The camera's address or password changed: reconnect with the new ones.</summary>
+    /// <summary>
+    /// Continues in a new file: the camera's address, password or location changed, or the disk
+    /// being written filled up or disappeared.
+    /// </summary>
     public void Restart()
     {
         if (_session is { } session)
@@ -191,10 +187,7 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
                 var old = _session;
                 _session = null;
                 State = RecordingState.Off;
-                if (!_blocked)
-                {
-                    Problem = null;
-                }
+                Problem = null;
 
                 if (old is not null)
                 {
@@ -281,7 +274,12 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
             return null;
         }
 
-        var folder = _folder();
+        if (await _folder(config) is not { } folder)
+        {
+            Problem = "Nenhum local de gravação com espaço (disco cheio ou desconectado)";
+            return null;
+        }
+
         if (!RecordingFiles.IsUsableFolder(folder))
         {
             Problem = "A pasta de gravação não pode ser usada";
@@ -435,7 +433,14 @@ internal sealed partial class CameraRecorder : ObservableObject, IDisposable
         }
     }
 
-    private static async Task StopAsync(Session session) => await Task.Run(() => StopNow(session));
+    private async Task StopAsync(Session session)
+    {
+        await Task.Run(() => StopNow(session));
+        if (File.Exists(session.Path))
+        {
+            LastFile = session.Path;
+        }
+    }
 
     private static void StopNow(Session session)
     {
