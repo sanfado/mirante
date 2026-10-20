@@ -3,8 +3,8 @@ using System.Xml.Linq;
 
 namespace Mirante.Core.Onvif;
 
-/// <summary>Pan/tilt position in ONVIF's generic space (both axes −1 to 1).</summary>
-public sealed record PtzPosition(double Pan, double Tilt);
+/// <summary>Pan/tilt position in ONVIF's generic space (both axes −1 to 1), plus zoom on cameras that have it.</summary>
+public sealed record PtzPosition(double Pan, double Tilt, double? Zoom = null);
 
 public sealed record PtzCapabilities(bool Continuous, bool Relative, bool Absolute, int MaxPresets, bool Zoom = false);
 
@@ -121,9 +121,7 @@ public sealed class OnvifPtz
 
         if (zoom != 0)
         {
-            velocity.Add(new XElement(Ns.Tt + "Zoom",
-                new XAttribute(XNamespace.Xmlns + "tt", Ns.Tt.NamespaceName),
-                new XAttribute("x", Number(zoom))));
+            velocity.Add(Zoom(zoom));
         }
 
         return CallAsync(new XElement(Ns.Tptz + "ContinuousMove",
@@ -147,21 +145,30 @@ public sealed class OnvifPtz
     public Task MoveToAsync(PtzPosition position, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(position);
-        return CallAsync(new XElement(Ns.Tptz + "AbsoluteMove",
-            Profile(),
-            new XElement(Ns.Tptz + "Position", PanTilt(position.Pan, position.Tilt))), cancellationToken);
+        var target = new XElement(Ns.Tptz + "Position", PanTilt(position.Pan, position.Tilt));
+        if (position.Zoom is { } zoom && Capabilities.Zoom)
+        {
+            target.Add(Zoom(zoom));
+        }
+
+        return CallAsync(new XElement(Ns.Tptz + "AbsoluteMove", Profile(), target), cancellationToken);
     }
 
     public async Task<PtzPosition?> GetPositionAsync(CancellationToken cancellationToken = default)
     {
         var status = await CallAsync(new XElement(Ns.Tptz + "GetStatus", Profile()), cancellationToken)
             .ConfigureAwait(false);
-        var panTilt = status.Descendants(Ns.Tt + "Position").Elements(Ns.Tt + "PanTilt").FirstOrDefault();
-        return panTilt is not null
-               && TryNumber(panTilt.Attribute("x")?.Value, out var x)
-               && TryNumber(panTilt.Attribute("y")?.Value, out var y)
-            ? new PtzPosition(x, y)
-            : null;
+        var position = status.Descendants(Ns.Tt + "Position").FirstOrDefault();
+        var panTilt = position?.Element(Ns.Tt + "PanTilt");
+        if (panTilt is null
+            || !TryNumber(panTilt.Attribute("x")?.Value, out var x)
+            || !TryNumber(panTilt.Attribute("y")?.Value, out var y))
+        {
+            return null;
+        }
+
+        double? zoom = TryNumber(position!.Element(Ns.Tt + "Zoom")?.Attribute("x")?.Value, out var z) ? z : null;
+        return new PtzPosition(x, y, zoom);
     }
 
     /// <summary>
@@ -196,6 +203,11 @@ public sealed class OnvifPtz
             new XAttribute(XNamespace.Xmlns + "tt", Ns.Tt.NamespaceName),
             new XAttribute("x", Number(pan)),
             new XAttribute("y", Number(tilt)));
+
+    private static XElement Zoom(double value) =>
+        new(Ns.Tt + "Zoom",
+            new XAttribute(XNamespace.Xmlns + "tt", Ns.Tt.NamespaceName),
+            new XAttribute("x", Number(value)));
 
     private XElement Profile() => new(Ns.Tptz + "ProfileToken", ProfileToken);
 

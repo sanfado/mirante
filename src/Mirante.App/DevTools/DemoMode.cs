@@ -151,6 +151,11 @@ internal static class DemoMode
             live.Ptz.SimulateForDemo(); // a camera with zoom
             await Task.Delay(500);
             RenderElement(tileView.Overlay, output, "01f-setas-ptz-com-zoom");
+            var nameDialog = new PositionNameWindow(live.Name, "Posição 1") { Owner = window };
+            nameDialog.Show();
+            await Task.Delay(800);
+            RenderElement((FrameworkElement)nameDialog.Content, output, "01g-salvar-posicao");
+            nameDialog.Close();
             live.IsPtzMode = false;
             live.Ptz.Reset();
         }

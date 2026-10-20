@@ -118,6 +118,14 @@ internal sealed partial class MainWindow : FluentWindow, IShell, IShortcutHost
         return await box.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
     }
 
+    public Task<string?> AskPositionNameAsync(string cameraName, string suggestion)
+    {
+        // Over the window the camera is in (a detached one, if that's where the user clicked).
+        Window owner = Application.Current.Windows.OfType<DetachedCameraWindow>().FirstOrDefault(w => w.IsActive) ?? (Window)this;
+        var window = new PositionNameWindow(cameraName, suggestion) { Owner = owner };
+        return Task.FromResult(window.ShowDialog() == true ? window.Result : null);
+    }
+
     public IReadOnlyList<Guid>? OrganizeCameras(IReadOnlyList<(Guid Id, string Name)> cameras)
     {
         var window = new OrganizeCamerasWindow(cameras) { Owner = this };

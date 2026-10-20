@@ -17,6 +17,9 @@ internal interface IShell
 
     Task<bool> ConfirmRemoveAsync(string cameraName);
 
+    /// <summary>Name for a new saved position, or null if cancelled.</summary>
+    Task<string?> AskPositionNameAsync(string cameraName, string suggestion);
+
     /// <summary>Lets the user reorder the cameras; returns the new order or null if cancelled.</summary>
     IReadOnlyList<Guid>? OrganizeCameras(IReadOnlyList<(Guid Id, string Name)> cameras);
 
@@ -277,6 +280,45 @@ internal sealed partial class MainViewModel : ObservableObject
 
         Tiles.Remove(tile);
         _credentials.Delete(tile.Id);
+        Save();
+    }
+
+    /// <summary>Saves where the camera points now under a name; the same name replaces the old one.</summary>
+    public async Task SavePositionAsync(CameraTileViewModel tile)
+    {
+        var positions = tile.Positions;
+        if (positions.Count >= CameraPosition.MaxCount)
+        {
+            Shell?.ShowToast($"{tile.Name} já tem {CameraPosition.MaxCount} posições; remova uma antes");
+            return;
+        }
+
+        if (await tile.Ptz.ReadPositionAsync() is not { } current)
+        {
+            Shell?.ShowToast($"Não foi possível ler a posição de {tile.Name}");
+            return;
+        }
+
+        if (Shell is null || await Shell.AskPositionNameAsync(tile.Name, $"Posição {positions.Count + 1}") is not { } typed
+            || string.IsNullOrWhiteSpace(typed))
+        {
+            return;
+        }
+
+        var name = typed.Trim();
+        var position = new CameraPosition(name, Math.Clamp(current.Pan, -1, 1), Math.Clamp(current.Tilt, -1, 1),
+            current.Zoom is { } zoom ? Math.Clamp(zoom, -1, 1) : null);
+        var replaced = positions.Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        tile.SetPositions(replaced
+            ? [.. positions.Select(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ? position : p)]
+            : [.. positions, position]);
+        Save();
+        Shell.ShowToast(replaced ? $"Posição “{name}” atualizada" : $"Posição “{name}” salva");
+    }
+
+    public void RemovePosition(CameraTileViewModel tile, CameraPosition position)
+    {
+        tile.SetPositions([.. tile.Positions.Where(p => p != position)]);
         Save();
     }
 

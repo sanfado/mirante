@@ -145,6 +145,24 @@ public sealed class OnvifTests
     }
 
     [Fact]
+    public async Task Positions_include_zoom_only_on_cameras_with_zoom()
+    {
+        var withZoom = new FakeOnvifCamera("camera-user", "certa") { HasZoom = true };
+        var ptz = await Connect(withZoom, "certa");
+        Assert.Equal(new PtzPosition(0.141223, -0.5, 0.25), await ptz!.GetPositionAsync(TestContext.Current.CancellationToken));
+        await ptz.MoveToAsync(new PtzPosition(0.1, 0.2, 0.25), TestContext.Current.CancellationToken);
+        Assert.Equal("0.25", withZoom.Requests[^1].Body.Descendants(Ns.Tt + "Zoom").Single().Attribute("x")?.Value);
+
+        var withoutZoom = new FakeOnvifCamera("camera-user", "certa");
+        var tapo = await Connect(withoutZoom, "certa");
+        await tapo!.MoveToAsync(new PtzPosition(0.1, 0.2, 0.25), TestContext.Current.CancellationToken);
+        var move = withoutZoom.Requests[^1].Body;
+        Assert.Equal("AbsoluteMove", move.Name.LocalName);
+        Assert.Empty(move.Descendants(Ns.Tt + "Zoom"));
+        Assert.Equal("0.2", move.Descendants(Ns.Tt + "PanTilt").Single().Attribute("y")?.Value);
+    }
+
+    [Fact]
     public void Xml_with_a_dtd_is_rejected()
     {
         const string evil = """<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "aaaa">]><x>&a;</x>""";
@@ -197,6 +215,7 @@ public sealed class OnvifTests
             }
 
             var zoomSpace = HasZoom ? "<tt:ContinuousZoomVelocitySpace />" : string.Empty;
+            var zoomPosition = HasZoom ? """<tt:Zoom x="0.25" />""" : string.Empty;
             var ptzService = HasPtz
                 ? """<tds:Service><tds:Namespace>http://www.onvif.org/ver20/ptz/wsdl</tds:Namespace><tds:XAddr>http://203.0.113.9:2020/onvif/ptz_service</tds:XAddr></tds:Service>"""
                 : string.Empty;
@@ -229,8 +248,8 @@ public sealed class OnvifTests
                     <tt:AbsolutePanTiltPositionSpace /><tt:RelativePanTiltTranslationSpace /><tt:ContinuousPanTiltVelocitySpace />{zoomSpace}
                     </tt:SupportedPTZSpaces><tt:MaximumNumberOfPresets>8</tt:MaximumNumberOfPresets></tptz:PTZNode></tptz:GetNodesResponse>
                     """,
-                "GetStatus" => """
-                    <tptz:GetStatusResponse><tptz:PTZStatus><tt:Position><tt:PanTilt x="0.141223" y="-0.5" /></tt:Position></tptz:PTZStatus></tptz:GetStatusResponse>
+                "GetStatus" => $"""
+                    <tptz:GetStatusResponse><tptz:PTZStatus><tt:Position><tt:PanTilt x="0.141223" y="-0.5" />{zoomPosition}</tt:Position></tptz:PTZStatus></tptz:GetStatusResponse>
                     """,
                 var other => $"<tptz:{other}Response />",
             });

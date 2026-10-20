@@ -114,6 +114,9 @@ internal sealed partial class CameraStream : ObservableObject, IDisposable
         Retry();
     }
 
+    /// <summary>Saved positions changed: nothing to reconnect.</summary>
+    public void UpdatePositions(IReadOnlyList<CameraPosition> positions) => Config = Config with { Positions = positions };
+
     /// <summary>Retries now (e.g. after the user fixed the password).</summary>
     public void Retry()
     {

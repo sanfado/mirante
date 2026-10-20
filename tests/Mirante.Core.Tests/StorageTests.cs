@@ -5,6 +5,63 @@ using Mirante.Core.Storage;
 
 namespace Mirante.Core.Tests;
 
+public sealed class CameraPositionStorageTests : IDisposable
+{
+    private readonly string _folder = Directory.CreateTempSubdirectory("mirante-test-").FullName;
+
+    public void Dispose() => Directory.Delete(_folder, recursive: true);
+
+    [Fact]
+    public void Positions_are_saved_per_camera()
+    {
+        var repo = new CameraRepository(Path.Combine(_folder, "cameras.json"));
+        var camera = CameraConfig.CreateNew("Sala", "192.168.1.100") with
+        {
+            Positions = [new CameraPosition("Porta", 0.14, 0.28), new CameraPosition("Sofá", -0.5, 0, 0.3)],
+        };
+        repo.Save([camera]);
+        var loaded = Assert.Single(repo.Load());
+        Assert.Equal(camera.Positions, loaded.Positions);
+    }
+
+    [Fact]
+    public void Cameras_saved_before_positions_load_without_them()
+    {
+        var path = Path.Combine(_folder, "cameras.json");
+        File.WriteAllText(path, """
+            { "version": 1, "cameras": [
+              { "id": "6f7d3f0e-58a1-4a8b-9a51-0d2f5a1b2c3d", "name": "Sala", "host": "192.168.1.100", "port": 554, "streamPath": "stream1" }
+            ] }
+            """);
+        Assert.Null(Assert.Single(new CameraRepository(path).Load()).Positions);
+    }
+
+    [Fact]
+    public void Tampered_positions_are_dropped_on_load()
+    {
+        var path = Path.Combine(_folder, "cameras.json");
+        var many = string.Join(",", Enumerable.Range(1, 30).Select(i => $$"""{ "name": "P{{i}}", "pan": 0, "tilt": 0 }"""));
+        File.WriteAllText(path, $$"""
+            { "version": 1, "cameras": [
+              { "id": "6f7d3f0e-58a1-4a8b-9a51-0d2f5a1b2c3d", "name": "Sala", "host": "192.168.1.100", "port": 554, "streamPath": "stream1",
+                "positions": [
+                  { "name": "Longe demais", "pan": 5, "tilt": 0 },
+                  { "name": "", "pan": 0, "tilt": 0 },
+                  { "name": "{{new string('x', 41)}}", "pan": 0, "tilt": 0 },
+                  { "name": "Zoom inválido", "pan": 0, "tilt": 0, "zoom": -3 },
+                  null,
+                  { "name": "Porta", "pan": 0.14, "tilt": -0.28 },
+                  {{many}}
+                ] }
+            ] }
+            """);
+        var positions = Assert.Single(new CameraRepository(path).Load()).Positions!;
+        Assert.Equal(CameraPosition.MaxCount, positions.Count);
+        Assert.Equal("Porta", positions[0].Name);
+        Assert.All(positions, p => Assert.True(p.IsValid));
+    }
+}
+
 public sealed class RepositoryTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("mirante-test-").FullName;

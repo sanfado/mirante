@@ -40,6 +40,10 @@ internal sealed partial class CameraPtz : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _supportsZoom;
 
+    /// <summary>Can read its position and go back to it exactly (saved positions).</summary>
+    [ObservableProperty]
+    private bool _supportsPositions;
+
     public bool IsMoving => _moving is not null;
 
     /// <summary>Looks for pan/tilt once per configuration (call again after <see cref="Reset"/>).</summary>
@@ -65,6 +69,7 @@ internal sealed partial class CameraPtz : ObservableObject, IDisposable
         IsAvailable = false;
         SupportsDiagonal = false;
         SupportsZoom = false;
+        SupportsPositions = false;
     }
 
 #if DEBUG
@@ -73,6 +78,7 @@ internal sealed partial class CameraPtz : ObservableObject, IDisposable
     {
         SupportsDiagonal = true;
         SupportsZoom = true;
+        SupportsPositions = true;
     }
 #endif
 
@@ -95,6 +101,31 @@ internal sealed partial class CameraPtz : ObservableObject, IDisposable
         _velocity = (pan, tilt, zoom);
         _moving = new CancellationTokenSource();
         _ = MoveLoopAsync(ptz, pan, tilt, zoom, _moving.Token);
+    }
+
+    /// <summary>Where the camera points now; null if it can't tell.</summary>
+    public async Task<PtzPosition?> ReadPositionAsync()
+    {
+        if (_ptz is not { } ptz)
+        {
+            return null;
+        }
+
+        PtzPosition? position = null;
+        await SendAsync(async () => position = await ptz.GetPositionAsync(), CancellationToken.None);
+        return position;
+    }
+
+    /// <summary>Goes straight to a saved position (stops any arrow move first).</summary>
+    public void GoTo(PtzPosition position)
+    {
+        if (_ptz is not { } ptz)
+        {
+            return;
+        }
+
+        StopMove();
+        _ = SendAsync(() => ptz.MoveToAsync(position), CancellationToken.None);
     }
 
     public void StopMove()
@@ -138,6 +169,7 @@ internal sealed partial class CameraPtz : ObservableObject, IDisposable
                     _ptz = ptz;
                     SupportsDiagonal = ptz.SupportsDiagonal;
                     SupportsZoom = ptz.Capabilities.Zoom;
+                    SupportsPositions = ptz.Capabilities.Absolute;
                     IsAvailable = true;
                 }
 

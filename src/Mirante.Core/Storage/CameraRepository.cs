@@ -12,6 +12,10 @@ public sealed class CameraRepository(string filePath)
         (_store.Load()?.Cameras ?? []) // "cameras": null or missing in a hand-edited file
             .Where(c => c is not null && CameraValidator.Validate(c).Count == 0)
             .DistinctBy(c => c.Id)
+            .Select(c => c.Positions is null ? c : c with
+            {
+                Positions = [.. c.Positions.Where(p => p is { IsValid: true }).Take(CameraPosition.MaxCount)],
+            })
             .ToList();
 
     public void Save(IEnumerable<CameraConfig> cameras) =>

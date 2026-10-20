@@ -130,6 +130,14 @@
                             ToolTip="Para a direita (→)" MouseLeftButtonDown="OnPtzArrowDown" MouseLeftButtonUp="OnPtzArrowUp" LostMouseCapture="OnPtzArrowLost">
                         <ui:SymbolIcon Symbol="ChevronRight24" Style="{StaticResource PtzGlyph}" />
                     </Border>
+                    <!-- Posições salvas (câmeras que informam e aceitam posição exata) -->
+                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Padding="4" CornerRadius="21"
+                            Background="{StaticResource OverlayChrome}"
+                            Visibility="{Binding Ptz.SupportsPositions, Converter={StaticResource BoolToVisibility}}">
+                        <ui:Button x:Name="PositionsButton" Style="{StaticResource OverlayIconButton}" Width="Auto"
+                                   Padding="10,0,12,0" FontSize="13" Icon="{ui:SymbolIcon Bookmark24}" Content="Posições"
+                                   ToolTip="Salvar ou voltar a uma posição" Click="OnPositionsClick" />
+                    </Border>
                     <!-- Zoom (só em câmeras que informam zoom óptico via ONVIF) -->
                     <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Horizontal"
                                 Visibility="{Binding Ptz.SupportsZoom, Converter={StaticResource BoolToVisibility}}">

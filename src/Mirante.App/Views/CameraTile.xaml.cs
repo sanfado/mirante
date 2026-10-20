@@ -204,6 +204,52 @@ internal sealed partial class CameraTile : UserControl
         e.Handled = true; // not a double-click on the video
     }
 
+    /// <summary>Saved positions: go to one, save the current one, or remove one.</summary>
+    private void OnPositionsClick(object sender, RoutedEventArgs e)
+    {
+        if (_tile is not { } tile)
+        {
+            return;
+        }
+
+        static Wpf.Ui.Controls.SymbolIcon Icon(Wpf.Ui.Controls.SymbolRegular symbol) => new(symbol);
+        var menu = new ContextMenu { PlacementTarget = PositionsButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        var positions = tile.Positions;
+        foreach (var position in positions)
+        {
+            var go = new MenuItem { Header = position.Name, Icon = Icon(Wpf.Ui.Controls.SymbolRegular.Location24) };
+            go.Click += (_, _) => tile.GoToPosition(position);
+            menu.Items.Add(go);
+        }
+
+        if (positions.Count == 0)
+        {
+            menu.Items.Add(new MenuItem { Header = "Nenhuma posição salva ainda", IsEnabled = false });
+        }
+
+        menu.Items.Add(new Separator());
+        menu.Items.Add(new MenuItem
+        {
+            Header = "Salvar posição atual…",
+            Icon = Icon(Wpf.Ui.Controls.SymbolRegular.BookmarkAdd24),
+            Command = tile.SavePositionCommand,
+        });
+        if (positions.Count > 0)
+        {
+            var remove = new MenuItem { Header = "Remover posição", Icon = Icon(Wpf.Ui.Controls.SymbolRegular.Delete24) };
+            foreach (var position in positions)
+            {
+                var item = new MenuItem { Header = position.Name };
+                item.Click += (_, _) => tile.RemovePosition(position);
+                remove.Items.Add(item);
+            }
+
+            menu.Items.Add(remove);
+        }
+
+        menu.IsOpen = true;
+    }
+
     private void OnPtzArrowUp(object sender, MouseButtonEventArgs e)
     {
         (sender as Border)?.ReleaseMouseCapture(); // LostMouseCapture stops the move

@@ -50,6 +50,19 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     public CameraPtz Ptz { get; } = new();
 
+    public IReadOnlyList<Mirante.Core.Cameras.CameraPosition> Positions => Stream.Config.Positions ?? [];
+
+    public void SetPositions(IReadOnlyList<Mirante.Core.Cameras.CameraPosition> positions)
+    {
+        Stream.UpdatePositions(positions);
+        OnPropertyChanged(nameof(Positions));
+    }
+
+    public void GoToPosition(Mirante.Core.Cameras.CameraPosition position) =>
+        Ptz.GoTo(new Mirante.Core.Onvif.PtzPosition(position.Pan, position.Tilt, position.Zoom));
+
+    public void RemovePosition(Mirante.Core.Cameras.CameraPosition position) => _owner.RemovePosition(this, position);
+
     public Guid Id => Stream.Config.Id;
 
     public string Name => Stream.Config.Name;
@@ -164,6 +177,9 @@ internal sealed partial class CameraTileViewModel : ObservableObject
 
     [RelayCommand]
     private void TogglePtzMode() => IsPtzMode = !IsPtzMode;
+
+    [RelayCommand]
+    private Task SavePositionAsync() => _owner.SavePositionAsync(this);
 
     private void DetectPtz()
     {

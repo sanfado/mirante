@@ -22,6 +22,9 @@ public sealed record CameraConfig
     /// <summary>"Realçar voz": speech equalization for hard-to-hear camera audio.</summary>
     public bool VoiceBoost { get; init; }
 
+    /// <summary>Saved pan/tilt positions (cameras with PTZ). Null in files written before they existed.</summary>
+    public IReadOnlyList<CameraPosition>? Positions { get; init; }
+
     public static CameraConfig CreateNew(string name, string host, int port = DefaultRtspPort,
         string streamPath = HighQualityStream) =>
         new() { Id = Guid.NewGuid(), Name = name, Host = host, Port = port, StreamPath = streamPath };
