@@ -29,6 +29,7 @@
 - **Foco**: duplo-clique ou teclas `1`–`9` para ver uma câmera grande; `Esc` volta.
 - **Áudio**: um botão de som por câmera, só uma tocando por vez; volume até 200% e “Realçar voz”, salvos por câmera.
 - **Mover a câmera (PTZ)**: em câmeras com ONVIF (como a Tapo C200/C210), setas no vídeo e no teclado, posições salvas (“Porta”, “Sofá”) com volta exata; zoom e diagonal em câmeras que suportam.
+- **Gravação local**: “Gravar agora” (`R`) e gravação contínua por câmera, mesmo com o app na bandeja. Arquivos MKV de 1 hora com vídeo e áudio originais (sem converter), legíveis mesmo se o PC desligar no meio. Vários **locais de gravação** (ex.: um HD para cada), com limite de espaço por local e limpeza automática das contínuas antigas; as manuais nunca são apagadas sozinhas.
 - **Fotos** (`F` ou botão da câmera) em `Imagens\Mirante` local, fora do OneDrive.
 - **Reconexão automática** com diagnóstico: diferencia “senha recusada” de “câmera fora do ar”.
 - **Teste de conexão** ao cadastrar: confirma IP, porta e senha antes de salvar.
@@ -73,6 +74,7 @@ Detalhes e limitações (RTSP não é criptografado) em [SECURITY.md](SECURITY.m
 | `M` | Liga/desliga o som da câmera |
 | Setas / `+` `−` | Movem a câmera e o zoom (com “Mover câmera” ligado) |
 | `F` | Foto da câmera sob o mouse |
+| `R` | Gravar agora / parar |
 | `Ctrl+N` | Adicionar câmera |
 | Duplo-clique | Foca a câmera (na janela destacada: tela cheia) |
 

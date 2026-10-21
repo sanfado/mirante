@@ -33,6 +33,7 @@
   diagonal e zoom em câmeras que suportam (a Tapo move um eixo por vez e não tem zoom óptico).
 - **0.5.0:** posições salvas da câmera (“Porta”, “Sofá”): guardadas no Mirante, volta exata.
 - **0.6.0:** layouts salvos (desenho abaixo, em “Decisões”).
+- **0.7.0:** gravação local (manual e contínua) com locais de gravação (desenho em “Decisões”).
 
 ## Próximas versões (propostas, a conversar)
 
@@ -43,9 +44,13 @@
   Tapo. Estudar: o que ele exige (conta TP-Link?), latência, eco e segurança.
 - **Nivelador de áudio (compressor):** igualar sons baixos e altos. O VLC 3 não permite
   compressor e equalizador juntos por câmera; exige o app processar o áudio por conta própria.
-- **Gravação local:** manual e contínua, com limite de espaço e apagamento automático;
-  linha do tempo para rever.
-- **Eventos:** detecção de movimento com aviso do Windows e gravação por evento.
+- **Gravação, próximos passos:** linha do tempo no app para rever; exportar um trecho (cópia
+  sem converter); agendamento (ex.: só à noite); motor próprio sem buraco nas trocas de arquivo,
+  se os ~2 s fizerem falta.
+- **Eventos:** movimento e pessoas, com aviso e gravação/clipe por evento. Estudar dois caminhos:
+  a detecção da própria câmera via ONVIF (a C210 anuncia os serviços de eventos e de análise;
+  não gasta o PC) e detecção local no PC com um modelo de IA (qualquer câmera; gasta CPU/GPU).
+  As gravações já têm a base: arquivos por câmera, dia e hora de início, e tipos extensíveis.
 - **Interface em inglês** (hoje só pt-BR; o README já é bilíngue).
 - **1.0:** instalador assinado (SignPath), i18n, guia de contribuição.
 
@@ -61,6 +66,17 @@
   - Câmera nova entra em todos os layouts (guarda-se quem foi excluído, não quem foi incluído).
   - Troca: seletor na barra de título (com atualizar, renomear e excluir), Ctrl+1–9 e menu
     da bandeja. Ao abrir, o app volta como foi deixado; layout é algo que se ativa.
+- **Gravação** (combinado em 2026-10-20, entregue na 0.7.0), depois de testes com a C210:
+  - MKV copiando o fluxo (H.264/H.265 + G.711 originais); legível após queda. MP4 corrompe na
+    queda e TS perde o G.711.
+  - Conexão própria (a C210 aceita duas: ver + gravar); continua na bandeja e com a câmera fora
+    do layout. Arquivos de 1 hora; a troca abre o novo antes de fechar o antigo quando a câmera
+    aceita, senão ~2 s de buraco (o VLC 3 não divide arquivos sem reconectar).
+  - “Gravar agora” com a contínua ligada vira um arquivo manual (protegido da limpeza).
+  - Locais de gravação: “Automático” (primeiro com espaço; com todos cheios, sobrescreve o mais
+    antigo) ou fixo por câmera; disco cheio ou desconectado leva a outro local, com aviso.
+  - Limpeza: contínuas acima de 7 dias ou do limite de cada local; manuais nunca.
+  - App fechado não grava (serviço do Windows exigiria administrador).
 
 ## A decidir antes de seguir
 

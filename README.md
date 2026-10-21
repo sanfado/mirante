@@ -30,6 +30,7 @@
 - **Focus**: double-click or keys `1`–`9` to show one camera large; `Esc` goes back.
 - **Audio**: a sound button per camera, one playing at a time; volume up to 200% and "voice boost" (speech EQ), saved per camera.
 - **Move the camera (PTZ)**: on ONVIF cameras (such as Tapo C200/C210), arrows on the video and on the keyboard, saved positions ("Door", "Couch") to go back to exactly; zoom and diagonal moves on cameras that support them.
+- **Local recording**: "record now" (`R`) and continuous recording per camera, even with the app in the tray. One-hour MKV files with the original video and audio (no re-encoding), playable even if the PC loses power mid-recording. Several **recording locations** (e.g. one drive each), each with its own space limit, and automatic cleanup of old continuous recordings; manual ones are never deleted automatically.
 - **Snapshots** (`F` or the camera's button) saved locally to `Pictures\Mirante`, outside OneDrive.
 - **Automatic reconnection** with diagnosis: tells "password rejected" apart from "camera offline".
 - **Connection test** when adding a camera: checks IP, port and password before saving.
@@ -75,6 +76,7 @@ Details and limitations (RTSP is not encrypted) in [SECURITY.md](SECURITY.md).
 | `M` | Toggle the camera's sound |
 | Arrows / `+` `−` | Move the camera and zoom (with "Mover câmera" on) |
 | `F` | Snapshot of the camera under the mouse |
+| `R` | Record now / stop |
 | `Ctrl+N` | Add camera |
 | Double-click | Focus the camera (in a popped-out window: fullscreen) |
 
